@@ -1,8 +1,12 @@
 {
   "invites": [
     {
-      "id": 3666,
+      "party_id": 3666,
       "username": "channdk"
+    },
+    {
+      "party_id": 3666,
+      "username": "Luuuuha"
     }
   ],
   "characters": [],
