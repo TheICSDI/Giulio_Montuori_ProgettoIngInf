@@ -20,9 +20,21 @@ def save_data():
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.message.chat_id
+    username = update.message.from_user.username
 
-    await update.message.reply_text("Benvenuto su D&D 5e Telegram bot!\nScrivi /help per più imformazioni su come giocare \U0001F604.")
+    if isInvited(username) == True:
+        keyboard = [
+            [
+                InlineKeyboardButton("Si \U0001F534", callback_data="si"),
+                InlineKeyboardButton("No \U0001F535", callback_data="no"),
+            ],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.message.reply_text("Sei stato invitato in un party.\nVuoi entrare nel party?", reply_markup=reply_markup)
+
+    else:
+        await update.message.reply_text("Benvenuto su D&D 5e Telegram bot!\nScrivi /help per più imformazioni su come giocare \U0001F604.")
 
 async def help_command(update: Update, context:ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("DA FARE")
@@ -124,7 +136,7 @@ async def send_invite(update:Update, context:ContextTypes.DEFAULT_TYPE):
     usr_invite = usr_invite[1:]   #rimuove @
 
     new_invite = {
-        "id": party_id["id"],
+        "party_id": party_id["id"],
         "username": usr_invite,
     }
     dnd_data["invites"].append(new_invite)
@@ -148,29 +160,31 @@ async def caps(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
 
+    # Commenti ufficiali di PTB 
     # CallbackQueries need to be answered, even if no notification to the user is needed
     # Some clients may have trouble otherwise. See https://core.telegram.org/bots/api#callbackquery
     await query.answer()
 
-    await query.edit_message_text(text=f"Selected option: {query.data}")
+    if query.data == "si":
+        await query.edit_message_text(text="Invito accettato.\nSei stato aggiunto al party.") #TODO inserire il party_id
+        return
+    
+    if query.data == "no":
+        await query.edit_message_text(text="Invito rifiutato.")
 
-
+"""
 async def scelta(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [
-            InlineKeyboardButton("Rosso \U0001F534", callback_data="\U0001F534"),
-            InlineKeyboardButton("Blu \U0001F535", callback_data="\U0001F535"),
-        ],
-        [
-            InlineKeyboardButton("Nero \U000026AB", callback_data="\U000026AB"),
-            InlineKeyboardButton("Giallo \U0001F7E1", callback_data="\U0001F7E1"),
+            InlineKeyboardButton("Si \U0001F534", callback_data="si"),
+            InlineKeyboardButton("No \U0001F535", callback_data="no"),
         ],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await update.message.reply_text("Scegli un colore:", reply_markup=reply_markup)
+    await update.message.reply_text("Sei stato invitato in un party.\nVuoi entrare nel party?", reply_markup=reply_markup)
 
-
+"""
 
 async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE):
     num = random.randint(1, 20)
@@ -184,6 +198,12 @@ def getParty_isMaster(chat_id):
 
     return None, False
 
+def isInvited(username):
+    for invite in dnd_data["invites"]:
+        if username == invite["username"]:
+            return True
+
+    return False
 
 if __name__ == '__main__':
     application = ApplicationBuilder().token(TOKEN).build()
