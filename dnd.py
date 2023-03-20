@@ -2,7 +2,7 @@ import logging
 import json
 import random
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, filters, MessageHandler, CallbackQueryHandler, Application, ConversationHandler
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, ReplyKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 
 TOKEN = '5856331893:AAGotmP4Ws9jX4aowvi13JkfUlIQZH1uYfI'
 
@@ -10,24 +10,6 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
-
-"""
-class GameState:
-    def __init__(self):
-        self.players = {}
-
-    def add_player(self, player_id):
-        self.players[player_id] = None
-
-    def remove_player(self, player_id):
-        del self.players[player_id]
-
-    def set_player_character(self, player_id, character_name):
-        self.players[player_id] = character_name
-
-game_state = GameState()
-"""
-
 
 with open("dnd_data.json", "r") as f:
     dnd_data = json.load(f)
@@ -38,13 +20,15 @@ def save_data():
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Benvenuto su D&D 5e Telegram bot! Scrivi /help per più imformazioni su come giocare \U0001F604.")
+    chat_id = update.message.chat_id
+
+    await update.message.reply_text("Benvenuto su D&D 5e Telegram bot!\nScrivi /help per più imformazioni su come giocare \U0001F604.")
 
 async def help_command(update: Update, context:ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("DA FARE")
 
-async def create_party(update: Update, context:ContextTypes.DEFAULT_TYPE):
-    party_id = random.randint(1000, 9999)  # DA MIGLIORARE
+async def create_party(update: Update, context:ContextTypes.DEFAULT_TYPE): #il creatore del party satà automaticamente il DM
+    party_id = random.randint(1000, 9999)  #TODO DA MIGLIORARE
     chat_id = update.message.chat_id
 
     for party in dnd_data["parties"]:
@@ -57,16 +41,17 @@ async def create_party(update: Update, context:ContextTypes.DEFAULT_TYPE):
         "members": [
             {
                 "chat_id": chat_id,
-                "character": context.user_data.get("character", None)
+                "character": context.user_data.get("character", None),
+                "master": True,
             }
         ]
     }
     dnd_data["parties"].append(new_party)
     save_data()
 
-    await update.message.reply_text(f"Party creato! Your party ID is {party_id}. Share this ID with others to join the party.")
+    await update.message.reply_text(f"Party creato! Adesso sei il manster del party di id {party_id}!.\nCondividi l'id del perty per far entre altri giocatori o invitali con /invite <@username>.")
 
-async def join_party(update:Update, context:ContextTypes.DEFAULT_TYPE):
+async def join_party(update:Update, context:ContextTypes.DEFAULT_TYPE): #il creatore del party sarà il DM
     if len(context.args) == 0:
         await update.message.reply_text("Please provide the party ID to join. Usage: /join_party <party_id>")
 
@@ -82,7 +67,8 @@ async def join_party(update:Update, context:ContextTypes.DEFAULT_TYPE):
 
             party["members"].append({
                 "chat_id": chat_id,
-                "character": context.user_data.get("character", None)
+                "character": context.user_data.get("character", None),
+                "master": False,
             })
             save_data()
             await update.message.reply_text(f"Successfully joined party {party_id}!")
@@ -90,8 +76,8 @@ async def join_party(update:Update, context:ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text("Invalid party ID. Please check the party ID and try again.")
 
-async def remove_player(update:Update, context:ContextTypes.DEFAULT_TYPE):
-    party_id = int(context.args[0])
+async def remove_player(update:Update, context:ContextTypes.DEFAULT_TYPE): #per ora rimuove solo se stesso
+    party_id = int(context.args[0])                                        #TODO poter rimuove un utente dal DM
     chat_id = update.message.chat_id
 
     for party in dnd_data["parties"]:
@@ -112,6 +98,39 @@ async def remove_player(update:Update, context:ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("Non sei presente in quel party")
             return
     await update.message.reply_text(f"Non esiste un party {party_id} come id")
+
+async def send_invite(update:Update, context:ContextTypes.DEFAULT_TYPE):
+    chat_id = update.message.chat_id
+
+    if len(context.args) == 0:
+        await update.message.reply_text("Per mandare un invito devi specificare l'username dell'utente.\nInvita l'utente usando il comando /invite <@username>")
+        return
+
+    party_id, isMaster = getParty_isMaster(chat_id)
+
+    if party_id == None:
+        await update.message.reply_text("Devi essere in un party per mandare inviti.")
+        return
+
+    if isMaster == False:
+        await update.message.reply_text("Solo il Master può mandare inviti.")
+        return
+    
+    usr_invite = context.args[0]
+    if usr_invite.startswith('@') == False:
+        await update.message.reply_text("L'username non è valido.\nPerfavore inserisci un username valido del tipo <@username>")
+        return
+
+    usr_invite = usr_invite[1:]   #rimuove @
+
+    new_invite = {
+        "id": party_id["id"],
+        "username": usr_invite,
+    }
+    dnd_data["invites"].append(new_invite)
+    save_data()
+
+    await update.message.reply_text(f"L'utente @{usr_invite} è stato invitato correttamente.\nRiceverà l'invito all'avvio del bot tramite /start o con il comando /show_invites")
 
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -157,6 +176,13 @@ async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE):
     num = random.randint(1, 20)
     await context.bot.send_message(chat_id=update.effective_chat.id, text=str(num))
     
+def getParty_isMaster(chat_id):
+    for party in dnd_data["parties"]:
+        for member in party["members"]:
+            if member["chat_id"] == chat_id:
+                return party, member["master"]
+
+    return None, False
 
 
 if __name__ == '__main__':
@@ -169,6 +195,7 @@ if __name__ == '__main__':
     application.add_handler(CommandHandler('create', create_party))
     application.add_handler(CommandHandler('join', join_party))
     application.add_handler(CommandHandler('remove', remove_player))
+    application.add_handler(CommandHandler('send_invite', send_invite))
     application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), echo))
     application.add_handler(CommandHandler('caps', caps))
     application.add_handler(CommandHandler('roll', roll))

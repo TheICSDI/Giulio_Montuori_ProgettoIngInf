@@ -1,16 +1,19 @@
 {
+  "invites": [
+    {
+      "id": 3666,
+      "username": "channdk"
+    }
+  ],
   "characters": [],
   "parties": [
     {
-      "id": 4261,
+      "id": 3666,
       "members": [
         {
           "chat_id": 213685510,
-          "character": null
-        },
-        {
-          "chat_id": 770099265,
-          "character": null
+          "character": null,
+          "master": true
         }
       ]
     }
