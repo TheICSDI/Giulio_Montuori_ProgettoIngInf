@@ -2,7 +2,7 @@ import logging
 import json
 import random
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, filters, MessageHandler, CallbackQueryHandler, Application, ConversationHandler
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, CallbackQuery
 
 TOKEN = '5856331893:AAGotmP4Ws9jX4aowvi13JkfUlIQZH1uYfI'
 
@@ -22,19 +22,19 @@ def save_data():
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     username = update.message.from_user.username
 
-    if isInvited(username) == True:
+    await update.message.reply_text("Benvenuto su D&D 5e Telegram bot!\nScrivi /help per più imformazioni su come giocare \U0001F604.")
+
+    if isInvited(username) != 1:
         keyboard = [
             [
-                InlineKeyboardButton("Si \U0001F534", callback_data="si"),
-                InlineKeyboardButton("No \U0001F535", callback_data="no"),
+                InlineKeyboardButton("Si", callback_data="si"),
+                InlineKeyboardButton("No", callback_data="no"),
             ],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        await update.message.reply_text("Sei stato invitato in un party.\nVuoi entrare nel party?", reply_markup=reply_markup)
+        await update.message.reply_text("Sei stato invitato in un party\U0001F604.\nVuoi entrare nel party?", reply_markup=reply_markup)
 
-    else:
-        await update.message.reply_text("Benvenuto su D&D 5e Telegram bot!\nScrivi /help per più imformazioni su come giocare \U0001F604.")
 
 async def help_command(update: Update, context:ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("DA FARE")
@@ -70,27 +70,14 @@ async def join_party(update:Update, context:ContextTypes.DEFAULT_TYPE): #il crea
     party_id = int(context.args[0])
     chat_id = update.message.chat_id
 
-    for party in dnd_data["parties"]:
-        if party["id"] == party_id:
-            for member in party["members"]:
-                if member["chat_id"] == chat_id:
-                    await update.message.reply_text("You are already a member of this party.")
-                    return
+    reply = join(chat_id, party_id)
+    await update.message.reply_text(reply)
+    return
 
-            party["members"].append({
-                "chat_id": chat_id,
-                "character": context.user_data.get("character", None),
-                "master": False,
-            })
-            save_data()
-            await update.message.reply_text(f"Successfully joined party {party_id}!")
-            return
-
-    await update.message.reply_text("Invalid party ID. Please check the party ID and try again.")
 
 async def remove_player(update:Update, context:ContextTypes.DEFAULT_TYPE): #per ora rimuove solo se stesso
-    party_id = int(context.args[0])                                        #TODO poter rimuove un utente dal DM
     chat_id = update.message.chat_id
+    party_id, isMaster = getParty_isMaster(chat_id)
 
     for party in dnd_data["parties"]:
         if party["id"] == party_id:
@@ -102,11 +89,11 @@ async def remove_player(update:Update, context:ContextTypes.DEFAULT_TYPE): #per 
                         save_data()
                         await update.message.reply_text(f"Rimosso con successo dal party e party {party_id} elimitato")
                         return
-                    
                     save_data()
+
                     await update.message.reply_text(f"Rimosso con successo dal party {party_id}!")
                     return
-                
+
             await update.message.reply_text("Non sei presente in quel party")
             return
     await update.message.reply_text(f"Non esiste un party {party_id} come id")
@@ -120,16 +107,16 @@ async def send_invite(update:Update, context:ContextTypes.DEFAULT_TYPE):
 
     party_id, isMaster = getParty_isMaster(chat_id)
 
-    if party_id == None:
+    if party_id is None:
         await update.message.reply_text("Devi essere in un party per mandare inviti.")
         return
 
-    if isMaster == False:
+    if isMaster is False:
         await update.message.reply_text("Solo il Master può mandare inviti.")
         return
-    
+
     usr_invite = context.args[0]
-    if usr_invite.startswith('@') == False:
+    if usr_invite.startswith('@') is False:
         await update.message.reply_text("L'username non è valido.\nPerfavore inserisci un username valido del tipo <@username>")
         return
 
@@ -155,42 +142,33 @@ async def caps(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         text_caps = ' '.join(context.args).upper()
         await context.bot.send_message(chat_id=update.effective_chat.id, text=text_caps)
-        #await context.bot.send_message(chat_id=update.effective_chat.id, text=str(len(context.args))) conta il numero di argomenti
+        # await context.bot.send_message(chat_id=update.effective_chat.id, text=str(len(context.args))) conta il numero di argomenti
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
+    chat_id = update.callback_query.from_user.id
+    username = update.callback_query.from_user.username
 
-    # Commenti ufficiali di PTB 
+    # Commenti ufficiali di PTB
     # CallbackQueries need to be answered, even if no notification to the user is needed
     # Some clients may have trouble otherwise. See https://core.telegram.org/bots/api#callbackquery
     await query.answer()
 
     if query.data == "si":
+        party_id = isInvited(username)
+        join(chat_id, party_id)
         await query.edit_message_text(text="Invito accettato.\nSei stato aggiunto al party.") #TODO inserire il party_id
         return
-    
+
     if query.data == "no":
         await query.edit_message_text(text="Invito rifiutato.")
-
-"""
-async def scelta(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [
-            InlineKeyboardButton("Si \U0001F534", callback_data="si"),
-            InlineKeyboardButton("No \U0001F535", callback_data="no"),
-        ],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
-    await update.message.reply_text("Sei stato invitato in un party.\nVuoi entrare nel party?", reply_markup=reply_markup)
-
-"""
 
 async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE):
     num = random.randint(1, 20)
     await context.bot.send_message(chat_id=update.effective_chat.id, text=str(num))
-    
+
 def getParty_isMaster(chat_id):
+
     for party in dnd_data["parties"]:
         for member in party["members"]:
             if member["chat_id"] == chat_id:
@@ -199,17 +177,38 @@ def getParty_isMaster(chat_id):
     return None, False
 
 def isInvited(username):
+
     for invite in dnd_data["invites"]:
         if username == invite["username"]:
-            return True
+            dnd_data["invites"].remove(invite)
+            return int(invite["party_id"])
+            # return True
 
-    return False
+    return 1
+
+def join(chat_id, party_id):
+
+    for party in dnd_data["parties"]:
+        if party["id"] == party_id:
+            for member in party["members"]:
+                if member["chat_id"] == chat_id:
+                    return "Fai già parte di questo party."
+
+            party["members"].append({
+                "chat_id": chat_id,
+                "character": None,
+                "master": False,
+            })
+            save_data()
+            return f"Unito con successo al party {party_id}!"
+
+    return "Party ID non valido. Per favore controlla l'ID e riprova."
 
 if __name__ == '__main__':
-    application = ApplicationBuilder().token(TOKEN).build()
-    
 
-    
+    application = ApplicationBuilder().token(TOKEN).build()
+
+
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('help', help_command))
     application.add_handler(CommandHandler('create', create_party))
@@ -219,11 +218,10 @@ if __name__ == '__main__':
     application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), echo))
     application.add_handler(CommandHandler('caps', caps))
     application.add_handler(CommandHandler('roll', roll))
-    application.add_handler(CommandHandler('scelta', scelta))
     application.add_handler(CallbackQueryHandler(button))
-    
+
     application.run_polling()
-    
+
 
 """
 
