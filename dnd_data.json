@@ -1,8 +1,10 @@
 {
   "invites": [
     {
-      "party_id": 1001,
-      "username": "channdk"
+      "invite_code": 1000,
+      "expiration": false,
+      "party_id": 1000,
+      "username": 100000000
     }
   ],
   "characters": [],
@@ -14,21 +16,6 @@
           "chat_id": 100000000,
           "character": null,
           "master": true
-        }
-      ]
-    },
-    {
-      "id": 1001,
-      "members": [
-        {
-          "chat_id": 213685510,
-          "character": null,
-          "master": true
-        },
-        {
-          "chat_id": 512505465,
-          "character": null,
-          "master": false
         }
       ]
     }
