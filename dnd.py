@@ -21,7 +21,7 @@ def save_data():
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     username = update.message.from_user.username
-    party_id = isInvited(username)
+    # party_id = isInvited(username)
 
     await update.message.reply_text("Benvenuto su D&D 5e Telegram bot!\nScrivi /help per più imformazioni su come giocare \U0001F604.")
 
@@ -95,7 +95,7 @@ async def accept_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def remove_player(update:Update, context:ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
     reply = remove(chat_id)
-    update.message.reply_text(reply)
+    await update.message.reply_text(reply)
 
 
 async def send_invite(update:Update, context:ContextTypes.DEFAULT_TYPE):
