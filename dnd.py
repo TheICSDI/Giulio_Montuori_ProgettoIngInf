@@ -19,26 +19,17 @@ def save_data():
     with open("dnd_data.json", "w") as f:
         json.dump(dnd_data, f, indent=2)
 
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     username = update.message.from_user.username
     # party_id = isInvited(username)
 
     await update.message.reply_text("Benvenuto su D&D 5e Telegram bot!\nScrivi /help per più imformazioni su come giocare \U0001F604.")
 
-    if party_id:
-        keyboard = [
-            [
-                InlineKeyboardButton("Si", callback_data=len(party_id)),
-                InlineKeyboardButton("No", callback_data="no"),
-            ],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        await update.message.reply_text("Sei stato invitato in un party\U0001F604.\nVuoi entrare nel party?", reply_markup=reply_markup)
-
 
 async def help_command(update: Update, context:ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("TODO")
+
 
 async def create_party(update: Update, context:ContextTypes.DEFAULT_TYPE): #il creatore del party satà automaticamente il DM
     chat_id = update.message.chat_id
@@ -55,26 +46,6 @@ async def create_party(update: Update, context:ContextTypes.DEFAULT_TYPE): #il c
         await update.message.reply_text("Se desideri uscire prova il comando /exit")
 
 
-"""
-async def join_party(update:Update, context:ContextTypes.DEFAULT_TYPE): #il creatore del party sarà il DM
-    if len(context.args) == 0:
-        await update.message.reply_text("Per entrare in un party devi inserire il suo ID.\nRiprova con il comando /join_party <party_id>.")
-        return
-
-    chat_id = update.message.chat_id
-    party_id, isMaster = getParty_isMaster(chat_id)
-
-    if party_id is None:
-        party_id = context.args[0]
-        reply = join(chat_id, party_id)
-        await update.message.reply_text(reply)
-        return
-
-    else:
-        await update.message.reply_text("Fai già parte di un party.\nRicorda puoi partecipare solo ad un party alla volta.")
-        await update.message.reply_text("Se desideri uscire prova il comando /exit")
-"""
-
 async def accept_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(context.args) == 0:
         await update.message.reply_text("Per accettare un invito, inserisci il codice di invito.\nRiprova con il comando /accept_invite <invite_code>.")
@@ -89,7 +60,6 @@ async def accept_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if party_id > 0:
         dm_id = get_dm_id(party_id)
         await context.bot.send_message(chat_id=dm_id, text=f"L'utente @{name} è appena entrato nel tuo party.")
-
 
 
 async def remove_player(update:Update, context:ContextTypes.DEFAULT_TYPE):
@@ -170,26 +140,6 @@ async def caps(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text_caps = ' '.join(context.args).upper()
         await context.bot.send_message(chat_id=update.effective_chat.id, text=text_caps)
         # await context.bot.send_message(chat_id=update.effective_chat.id, text=str(len(context.args))) conta il numero di argomenti
-"""
-async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    chat_id = update.callback_query.from_user.id
-    # username = update.callback_query.from_user.username
-
-    # Commenti ufficiali di PTB
-    # CallbackQueries need to be answered, even if no notification to the user is needed
-    # Some clients may have trouble otherwise. See https://core.telegram.org/bots/api#callbackquery
-    await query.answer()
-
-    result = query.data
-    if result == "no":
-        await query.edit_message_text(text="Invito rifiutato.")
-
-    if len(result) == 4:
-        join(chat_id, int(result))
-        await query.edit_message_text(text="Invito accettato.\nSei stato aggiunto al party.") #TODO inserire il party_id
-        return
-"""
 
 async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE):
     num = random.randint(1, 20)
