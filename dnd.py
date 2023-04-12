@@ -13,10 +13,10 @@ from telegram.ext import (
     ConversationHandler
 )
 from telegram import (
-    # InlineKeyboardButton,
-    # InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
     Update,
-    # CallbackQuery,
+    CallbackQuery,
     ReplyKeyboardMarkup,
     KeyboardButton,
     ReplyKeyboardRemove
@@ -120,15 +120,58 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def remove_player(update:Update, context:ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
-    reply = remove(chat_id)
+    reply = remove_player_party(chat_id=chat_id, party_id=None, name=None)
     await update.message.reply_text(reply)
 
-"""
 async def kick_player(update:Update, context:ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
-    reply = remove(chat_id)
-    await update.message.reply_text(reply)
-"""
+    party_id, isMaster = getParty_isMaster(chat_id)
+
+    if isMaster:
+        if len(context.args) != 0:
+            reply = remove_player_party(chat_id=None, party_id=party_id, name=context.args[0])
+            await update.message.reply_text(reply)
+
+        else:
+            keyboard = []
+            for party in dnd_data["parties"]:
+                if party["id"] == party_id:
+                    for member in party["members"]:
+
+                        if member["chat_id"] != chat_id:
+                            name = member["name"]
+                            data = [name, party_id]
+                            button = InlineKeyboardButton(f"Nome: {name}", callback_data=data)
+                            keyboard.append([button])
+
+            data = ["Annulla"]
+            button = InlineKeyboardButton("Annulla", callback_data=data)
+            keyboard.append([button])
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await update.message.reply_text("Quale membro del party vuoi kickare?\n(Tip. puoi usare il comando anche come /kick <Nome>)", reply_markup=reply_markup)
+
+    else:
+        await update.message.reply_text("Solo il Dungeon Master può kickare i membri del party.")
+
+async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    # chat_id = update.callback_query.from_user.id
+    # username = update.callback_query.from_user.username
+
+    # Commenti ufficiali di PTB
+    # CallbackQueries need to be answered, even if no notification to the user is needed
+    # Some clients may have trouble otherwise. See https://core.telegram.org/bots/api#callbackquery
+    await query.answer()
+    await query.edit_message_text(text="CIAO.")
+    result = query.data
+
+    if result[0] == "Annulla":
+        await query.edit_message_text(text="Operazione annullata con successo")
+
+    else:
+        reply = remove_player_party(chat_id=None, party_id=result[1], name=result[0])
+        await query.edit_message_text(text=reply)
+        return
 
 async def send_invite(update:Update, context:ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
@@ -207,12 +250,13 @@ async def party_info(update: Update, context: ContextTypes.DEFAULT_TYPE): # TODO
 
     if party_id is None:
         await update.message.reply_text("Non sei in nessun party.\nPer maggiori informazioni usa il comando /help")
+        return
 
     for party in dnd_data["parties"]:
         if party["id"] == party_id:
             for member in party["members"]:
                 name = member["name"]
-                reply += f"Nome = {name} "
+                reply += f"Nome : {name} "
                 if member["master"] is True:
                     reply += "DM"
 
@@ -234,7 +278,7 @@ async def caps(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # await context.bot.send_message(chat_id=update.effective_chat.id, text=str(len(context.args))) conta il numero di argomenti
 
 async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    num = random.randint(1, 20)
+    num = random.randint(1, 6)
     await context.bot.send_message(chat_id=update.effective_chat.id, text=str(num))
 
 async def roll_6(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -318,20 +362,31 @@ def build_party(chat_id, party_id, full_name):
     dnd_data["parties"].append(new_party)
     save_data()
 
-def remove(chat_id):
+def remove_player_party(chat_id, party_id, name):
 
     for party in dnd_data["parties"]:
-        for member in party["members"]:
-            if member["chat_id"] == chat_id and member["master"] is False:
-                party["members"].remove(member)
-                save_data()
-                return "Rimosso con successo dal party!"
+        if party_id is None or party_id == party["id"]:
+            for member in party["members"]:
 
-            if member["chat_id"] == chat_id and member["master"] is True:
-                dnd_data["parties"].remove(party)
-                save_data()
-                return "Rimosso dal party e party elimitato con successo."
+                if name is None:
+                    if member["chat_id"] == chat_id and member["master"] is False:
+                        party["members"].remove(member)
+                        save_data()
+                        return "Rimosso con successo dal party!"
 
+                    if member["chat_id"] == chat_id and member["master"] is True:
+                        dnd_data["parties"].remove(party)
+                        save_data()
+                        return "Rimosso dal party e party elimitato con successo."
+
+                else:
+                    if member["name"] == name:
+                        party["members"].remove(member)
+                        save_data()
+                        return f"Player {name} rimosso con successo"
+
+            if party_id is not None:
+                return "L'utente non è presente nel party"
 
     return "Non sei presente in nessun party"
 
@@ -378,7 +433,7 @@ def extract_code(reply):
 
 if __name__ == '__main__':
 
-    application = ApplicationBuilder().token(TOKEN).build()
+    application = ApplicationBuilder().token(TOKEN).arbitrary_callback_data(True).build()
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("accept_invite", accept_invite)],
@@ -396,8 +451,10 @@ if __name__ == '__main__':
     application.add_handler(CommandHandler('create', create_party))
     # application.add_handler(CommandHandler('join', join_party))
     application.add_handler(CommandHandler('exit', remove_player))
+    application.add_handler(CommandHandler('kick', kick_player))
+    application.add_handler(CallbackQueryHandler(button))
     application.add_handler(CommandHandler('send_invite', send_invite))
-    application.add_handler(CommandHandler("generate_invite", generate_invite))
+    application.add_handler(CommandHandler('generate_invite', generate_invite))
     application.add_handler(CommandHandler('show_invites', show_invites))
     application.add_handler(CommandHandler('party', party_info))
     # application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), echo))
