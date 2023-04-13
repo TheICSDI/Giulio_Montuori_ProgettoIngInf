@@ -1,7 +1,7 @@
+import utility as util
 import logging
-import json
+# import json
 import random
-from datetime import datetime, timedelta
 from telegram.ext import (
     ApplicationBuilder,
     ContextTypes,
@@ -30,13 +30,6 @@ logging.basicConfig(
     level=logging.INFO
 )
 
-with open("dnd_data.json", "r") as f:
-    dnd_data = json.load(f)
-
-def save_data():
-    with open("dnd_data.json", "w") as f:
-        json.dump(dnd_data, f, indent=2)
-
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # username = update.message.from_user.username
@@ -52,11 +45,12 @@ async def help_command(update: Update, context:ContextTypes.DEFAULT_TYPE):
 async def create_party(update: Update, context:ContextTypes.DEFAULT_TYPE): #il creatore del party satà automaticamente il DM
     chat_id = update.message.chat_id
     full_name = update.message.from_user.full_name
-    party_id, isMaster = getParty_isMaster(chat_id)
+    party_id, isMaster = util.getParty_isMaster(chat_id)
 
     if party_id is None:
-        party_id = dnd_data["parties"][-1]["id"] + 1
-        build_party(chat_id, party_id, full_name)
+        # need to syncronize this
+        party_id = util.get_last_id("parties") + 1
+        util.build_party(chat_id, party_id, full_name)
         await update.message.reply_text(f"Party creato! Adesso sei il manster del party di id {party_id}!.\nSe l'utente è provvisto puoi usare /send_invite <@username>.\nAltrimenti poi generare un codice invito con il comando /generate_invite.")
         return
 
@@ -66,7 +60,8 @@ async def create_party(update: Update, context:ContextTypes.DEFAULT_TYPE): #il c
 
 async def accept_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
     username = update.message.from_user.username
-    invites = get_invites_for_user(username)
+    invites = util.get_invites_for_user(username)
+    util.get_invite
 
     if not invites:
         await update.message.reply_text("Non hai inviti in sospeso.")
@@ -90,19 +85,19 @@ async def accepting_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # if update.message.text == "/annulla":
     #    return None
 
-    invite_code = extract_code(update.message.text)
+    invite_code = util.extract_code(update.message.text)
 
     chat_id = update.message.chat_id
-    party_id, isMaster = getParty_isMaster(chat_id)
+    party_id, isMaster = util.getParty_isMaster(chat_id)
 
     if party_id is None:
         name = update.message.from_user.full_name
         username = update.message.from_user.username
-        party_id, reply = join_with_invite(invite_code, chat_id, username, name)
+        party_id, reply = util.join_with_invite(invite_code, chat_id, username, name)
         await update.message.reply_text(reply, reply_markup=ReplyKeyboardRemove(),)
 
         if party_id > 0:
-            dm_id = get_dm_id(party_id)
+            dm_id = util.get_dm_id(party_id)
             await context.bot.send_message(chat_id=dm_id, text=f"L'utente {name} è appena entrato nel tuo party.")
 
 
@@ -113,40 +108,41 @@ async def accepting_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text="This is a test please use only the /roll_6 command.")
     return TEST
 
-async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Cancels and ends the conversation."""
     await update.message.reply_text("Operazione cancellata.\nNessun invito accettato", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
 async def remove_player(update:Update, context:ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
-    reply = remove_player_party(chat_id=chat_id, party_id=None, name=None)
+    reply = util.remove_player_party(chat_id=chat_id, party_id=None, name=None)
     await update.message.reply_text(reply)
 
 async def kick_player(update:Update, context:ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
-    party_id, isMaster = getParty_isMaster(chat_id)
+    party_id, isMaster = util.getParty_isMaster(chat_id)
 
     if isMaster:
         if len(context.args) != 0:
-            reply = remove_player_party(chat_id=None, party_id=party_id, name=context.args[0])
+            reply = util.remove_player_party(chat_id=None, party_id=party_id, name=context.args[0])
             await update.message.reply_text(reply)
 
         else:
-            keyboard = []
-            for party in dnd_data["parties"]:
-                if party["id"] == party_id:
-                    for member in party["members"]:
 
-                        if member["chat_id"] != chat_id:
-                            name = member["name"]
-                            data = [name, party_id]
-                            button = InlineKeyboardButton(f"Nome: {name}", callback_data=data)
-                            keyboard.append([button])
+            keyboard = []
+            players = util.get_party(party_id)
+            for player in players:
+
+                if player["chat_id"] != chat_id:
+                    name = player["name"]
+                    data = [name, party_id]
+                    button = InlineKeyboardButton(f"Nome: {name}", callback_data=data)
+                    keyboard.append([button])
 
             data = ["Annulla"]
             button = InlineKeyboardButton("Annulla", callback_data=data)
             keyboard.append([button])
+
             reply_markup = InlineKeyboardMarkup(keyboard)
             await update.message.reply_text("Quale membro del party vuoi kickare?\n(Tip. puoi usare il comando anche come /kick <Nome>)", reply_markup=reply_markup)
 
@@ -169,7 +165,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(text="Operazione annullata con successo")
 
     else:
-        reply = remove_player_party(chat_id=None, party_id=result[1], name=result[0])
+        reply = util.remove_player_party(chat_id=None, party_id=result[1], name=result[0])
         await query.edit_message_text(text=reply)
         return
 
@@ -180,7 +176,7 @@ async def send_invite(update:Update, context:ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Per mandare un invito devi specificare l'username dell'utente.\nInvita l'utente usando il comando /invite <@username>")
         return
 
-    party_id, isMaster = getParty_isMaster(chat_id)
+    party_id, isMaster = util.getParty_isMaster(chat_id)
 
     if party_id is None:
         await update.message.reply_text("Devi essere in un party per mandare inviti.")
@@ -195,20 +191,21 @@ async def send_invite(update:Update, context:ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("L'username non è valido.\nPerfavore inserisci un username valido del tipo <@username>")
         return
 
-    usr_invite = usr_invite[1:]   #rimuove @
-    if checkInvite(usr_invite, party_id) is True:
+    usr_invite = usr_invite[1:]   #remove @
+    if util.checkInvite(usr_invite, party_id) is True:
         await update.message.reply_text(f"l'utente {usr_invite} è già stato invitato in questo party.\nSe l'utente non trova l'invito può usare il comando /show_invites.")
         return
 
-    invite_code = dnd_data["invites"][-1]["invite_code"] + 1
+    # need to syncronize this
+    invite_code = util.get_last_id("invite_code") + 1
 
-    build_invite(party_id, invite_code, usr_invite)
+    util.build_invite(party_id, invite_code, usr_invite)
 
     await update.message.reply_text(f"L'utente @{usr_invite} è stato invitato correttamente.\nL'utente puoi visionare gli inviti con il comando /show_invites")
 
 async def generate_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
-    party_id, isMaster = getParty_isMaster(chat_id)
+    party_id, isMaster = util.getParty_isMaster(chat_id)
 
     if party_id is None:
         await update.message.reply_text("Devi essere in un party per generare un invito.")
@@ -218,16 +215,16 @@ async def generate_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Solo il Master può generare inviti.")
         return
 
-    invite_code = dnd_data["invites"][-1]["invite_code"] + 1
+    invite_code = util.get_last_id("invites") + 1
 
-    build_invite(party_id, invite_code, False)
+    util.build_invite(party_id, invite_code, False)
 
     await update.message.reply_text(f"Ecco il codice invito: {invite_code}.\nPuoi condividerlo a SOLO un utente e può usare il comando /accept_invite per entrare.")
 
 
 async def show_invites(update: Update, context: ContextTypes.DEFAULT_TYPE):
     username = update.message.from_user.username
-    invites = get_invites_for_user(username)
+    invites = util.get_invites_for_user(username)
 
     if not invites:
         await update.message.reply_text("Non hai inviti in sospeso.")
@@ -245,14 +242,14 @@ async def show_invites(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def party_info(update: Update, context: ContextTypes.DEFAULT_TYPE): # TODO Aggiugere i dati del character dopo che lo creo
     chat_id = update.message.chat_id
-    party_id, isMaster = getParty_isMaster(chat_id)
+    party_id, isMaster = util.getParty_isMaster(chat_id)
     reply = f"Party {party_id} composto da :\n"
 
     if party_id is None:
         await update.message.reply_text("Non sei in nessun party.\nPer maggiori informazioni usa il comando /help")
         return
 
-    for party in dnd_data["parties"]:
+    for party in dnd_data["parties"]:      # TODO
         if party["id"] == party_id:
             for member in party["members"]:
                 name = member["name"]
@@ -286,150 +283,6 @@ async def roll_6(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text=str(num))
     return ConversationHandler.END
 
-"""
-COMANDI AUSILIARI////////////////////////////////////////////////////////////////////////////////////////////////////////
-"""
-
-def getParty_isMaster(chat_id):
-
-    for party in dnd_data["parties"]:
-        for member in party["members"]:
-            if member["chat_id"] == chat_id:
-                return party["id"], member["master"]
-
-    return None, False
-
-def checkInvite(username, party_id):
-
-    for invite in dnd_data["invites"]:
-        if username == invite["username"] and party_id == invite["party_id"]:
-            return True
-
-    return False
-
-def join(chat_id, party_id, full_name):
-
-    for party in dnd_data["parties"]:
-        if party["id"] == party_id:
-            for member in party["members"]:
-                if member["chat_id"] == chat_id:
-                    return 0, "Fai già parte di questo party."
-
-            party["members"].append({
-                "chat_id": chat_id,
-                "name": full_name,
-                "character": None,
-                "master": False,
-            })
-            save_data()
-            return party_id, f"Unito con successo al party {party_id}!"
-
-    return 0, "Party ID non valido. Per favore controlla l'ID e riprova."
-
-def join_with_invite(invite_code, chat_id, username, full_name):
-
-    for invite in dnd_data["invites"]:
-        if invite["invite_code"] == invite_code and invite["username"] == username:
-            expiration_time = datetime.strptime(invite["expiration"], "%d/%m/%Y %H:%M:%S")
-            if datetime.now() > expiration_time:
-                dnd_data["invites"].remove(invite)
-                save_data()
-                return 0, "Il codice di invito è scaduto. Chiedi al Master del party di generare un nuovo invito."
-
-            party_id = invite["party_id"]
-            dnd_data["invites"].remove(invite)
-            save_data()
-            return join(chat_id, party_id, full_name)
-
-        if invite["invite_code"] > invite_code:
-            break
-
-    return 0, "Codice di invito non valido."
-
-def build_party(chat_id, party_id, full_name):
-
-    new_party = {
-        "id": party_id,
-        "members": [
-            {
-                "chat_id": chat_id,
-                "name": full_name,
-                "character": None,
-                "master": True,
-            }
-        ]
-    }
-    dnd_data["parties"].append(new_party)
-    save_data()
-
-def remove_player_party(chat_id, party_id, name):
-
-    for party in dnd_data["parties"]:
-        if party_id is None or party_id == party["id"]:
-            for member in party["members"]:
-
-                if name is None:
-                    if member["chat_id"] == chat_id and member["master"] is False:
-                        party["members"].remove(member)
-                        save_data()
-                        return "Rimosso con successo dal party!"
-
-                    if member["chat_id"] == chat_id and member["master"] is True:
-                        dnd_data["parties"].remove(party)
-                        save_data()
-                        return "Rimosso dal party e party elimitato con successo."
-
-                else:
-                    if member["name"] == name:
-                        party["members"].remove(member)
-                        save_data()
-                        return f"Player {name} rimosso con successo"
-
-            if party_id is not None:
-                return "L'utente non è presente nel party"
-
-    return "Non sei presente in nessun party"
-
-def get_invites_for_user(username):
-
-    usr_invites = []
-    for invite in dnd_data["invites"]:
-        if invite["username"] == username:
-            usr_invites.append(invite)
-
-    return usr_invites
-
-def get_dm_id(party_id):
-    for party in dnd_data["parties"]:
-        if party_id == party["id"]:
-            return party["members"][0]["chat_id"]
-
-    return 0
-
-def build_invite(party_id, invite_code, usr_invite):
-
-    expiration_time = datetime.now() + timedelta(hours=48) # imposto la scadenza dell'invito a 2 giorni
-    expiration_time = expiration_time.strftime("%d/%m/%Y %H:%M:%S") # converto in stringa
-
-    new_invite = {
-        "invite_code": invite_code,
-        "expiration": expiration_time,
-        "party_id": party_id,
-        "username": usr_invite,
-    }
-    dnd_data["invites"].append(new_invite)
-    save_data()
-
-def extract_code(reply):
-
-    start_string = "Invito: "
-
-    i_start = reply.find(start_string)
-    if i_start == -1:
-        return None
-    i_start += len(start_string)
-
-    return int(reply[i_start:])
 
 if __name__ == '__main__':
 
