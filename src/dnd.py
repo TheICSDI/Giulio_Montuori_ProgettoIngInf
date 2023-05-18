@@ -31,14 +31,6 @@ logging.basicConfig(
     level=logging.INFO
 )
 
-
-# with open("JSON/dnd_data.json", "r") as f:
-#    dnd_data = json.load(f)
-#
-# def save_data():
-#    with open("JSON/dnd_data.json", "w") as f:
-#        json.dump(dnd_data, f, indent=2)
-
 def extract_id(reply):
 
     start_string = "Invito: "
@@ -60,9 +52,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def help_command(update: Update, context:ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("TODO")
 
-async def test(dm_id, context):
-    await context.bot.send_message(chat_id=dm_id, text="L'utente test test.")
-
 async def create_party(update: Update, context:ContextTypes.DEFAULT_TYPE): #il creatore del party satà automaticamente il DM
     chat_id = update.message.chat_id
     full_name = update.message.from_user.full_name
@@ -78,7 +67,7 @@ async def create_party(update: Update, context:ContextTypes.DEFAULT_TYPE): #il c
         await update.message.reply_text("Fai già parte di un party.\nRicorda puoi partecipare solo ad un party alla volta.")
         await update.message.reply_text("Se desideri uscire prova il comando /exit")
 
-async def accept_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def buildingInviteList(update: Update, context: ContextTypes.DEFAULT_TYPE):
     username = update.message.from_user.username
     invites = data_invite.getInvites(username)
 
@@ -299,7 +288,7 @@ if __name__ == '__main__':
     application = ApplicationBuilder().token(TOKEN).arbitrary_callback_data(True).build()
 
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler("accept_invite", accept_invite)],
+        entry_points=[CommandHandler("accept_invite", buildingInviteList)],
         states={
             SELECT: [MessageHandler(filters.Regex("^Party ID: (\d+), Codice Invito: (\d+)$"), accepting_invite)],
         },

@@ -49,6 +49,7 @@ class PartyManager(DataManager):
 
     async def create(self, chat_id, full_name):
         """
+        Implement the father's method
         """
         party_id = await self.getLastId() + 1
         new_party = {
@@ -67,6 +68,7 @@ class PartyManager(DataManager):
 
     async def join(self, chat_id, party_id, full_name):
         """
+        Join an existing party
         """
         for party in self.fileData:
             if party["id"] == party_id:
@@ -86,6 +88,7 @@ class PartyManager(DataManager):
 
     async def removePlayer(self, chat_id, party_id, name):
         """
+        Remove a pleyer from an existing party
         """
         for party in self.fileData:
             if party_id is None or party_id == party_id["id"]:
@@ -116,6 +119,7 @@ class PartyManager(DataManager):
 
     def getMembers(self, party_id):
         """
+        Get members for an existing party
         """
         for party in self.fileData:
             if party["id"] == party_id:
@@ -123,6 +127,7 @@ class PartyManager(DataManager):
 
     def getPartyID(self, chat_id):
         """
+        Get the party id from a chat_id
         """
         for party in self.fileData:
             for member in party["members"]:
@@ -131,6 +136,7 @@ class PartyManager(DataManager):
 
     def getPartyIsMaster(self, chat_id):
         """
+        Get the party id and check if that user is the master
         """
         for party in self.fileData:
             for member in party["members"]:
@@ -141,6 +147,7 @@ class PartyManager(DataManager):
 
     def getMaster(self, party_id):
         """
+        Get the chat id of the master form a specific party
         """
         for party in self.fileData:
             if party_id == party["id"]:
@@ -149,10 +156,12 @@ class PartyManager(DataManager):
 
 class InviteManager(DataManager):
     """
+    Class for managing the json data
     """
 
     async def create(self, party_id, username):
         """
+        Implement the father's method
         """
         invite_id = await self.getLastId() + 1
 
@@ -171,6 +180,7 @@ class InviteManager(DataManager):
 
     async def joinParty(self, pM, invite_id, chat_id, username, full_name):
         """
+        Joining a party through an invite
         """
         for invite in self.fileData:
             if (invite["id"] == invite_id and invite["username"] == username):
@@ -193,15 +203,23 @@ class InviteManager(DataManager):
 
     def checkInvite(self, username, party_id):
         """
+        Check if the user as a valid pending invite for that specific party
         """
         for invite in self.fileData:
-            if (username == invite["username"] and party_id == invite["party_id"]):
-                return True
+            if username == invite["username"] and party_id == invite["party_id"]:
+                expiration_time = datetime.strptime(invite["expiration"], "%d/%m/%Y %H:%M:%S")
+                if datetime.now() > expiration_time:
+                    return True
+
+                self.fileData.remove(invite)
+                await self.saveData()
+                return False
 
         return False
 
     def getInvites(self, username):
         """
+        Get a list of a valid invite form a specific user
         """
         usr_invites = []
         for invite in self.fileData:
