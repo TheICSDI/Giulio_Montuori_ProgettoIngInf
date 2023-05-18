@@ -1,0 +1,14 @@
+[
+  {
+    "id": 8500,
+    "expiration": false,
+    "party_id": 1000,
+    "username": 100000000
+  },
+  {
+    "id": 8501,
+    "expiration": "12/04/2023 21:08:26",
+    "party_id": 1001,
+    "username": false
+  }
+]
