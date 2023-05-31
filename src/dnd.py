@@ -349,56 +349,6 @@ async def sheetKeyboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(text=f"Ecco il datasheet del tuo personaggio {nickname} clicca per ricevere più informazioni o per modificare i dati presenti", reply_markup=reply_markup)
     return CHOICE
 
-"""
-async def choiceSheet(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    chat_id = update.callback_query.from_user.id
-    await query.answer()
-    result = query.data
-
-
-    choice = data_character.getCharacters(chat_id)
-    choice = choice[int(result[-1])]
-
-    button1 = InlineKeyboardButton("EDIT", callback_data=f"E{result}")
-    button2 = InlineKeyboardButton("BACK", callback_data=f"X{result[-1]}")
-    keyboard = [[button1, button2]]
-
-    if result[0] == "R":
-        text = choice["race"]
-
-    elif result[0] == "C":
-        text = choice["class"]
-
-    elif result[0] == "B":
-        text = choice["background"]
-
-    elif result[0] == "D":
-        text = choice["details"]
-
-    elif result[0] == "F":
-        text = choice["feats"]
-
-    elif result[0] == "P":
-        text = "weapon proficiencies:\n"
-        text += str(choice["weapon_proficiencies"])
-        text += "\narmor proficiencies:\n"
-        text += str(choice["armor_proficiencies"])
-
-    elif result[0] == "S":
-        text = choice["spells"]
-
-    elif result[0] == "W":
-        text = choice["weapons"]
-
-    elif result[0] == "I":
-        text = choice["race"]
-
-
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await query.edit_message_text(text=text, reply_markup=reply_markup)
-    return EDIT
-"""
 async def choiceSheet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     """
@@ -452,8 +402,42 @@ async def editCharacter(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     return ConversationHandler.END
 
-def format_data(choice: dict, key: str, indent: str = '') -> str:
+def format_data(choice: dict, key: str, indent: str = '', level: int = 0) -> str:
     """Format data for display recursively."""
+    data = choice[key]
+    text = ""
+    # Define your emojis for each level
+    level_emojis = ["🔹", "🔸", "▫️", "⚪", "🔘"]
+
+    # Function to format each element of data
+    def format_element(element, indent='', level=0):
+        nonlocal text
+        # Use a different emoji for each level
+        emoji = level_emojis[level % len(level_emojis)]
+        if isinstance(element, dict):
+            for k, v in element.items():
+                if isinstance(v, list):
+                    for i, item in enumerate(v):
+                        text += f"{indent}{emoji} {k.capitalize()} {i+1}:\n"
+                        format_element(item, indent + '  ', level + 1)
+                elif isinstance(v, dict):
+                    text += f"{indent}{emoji} {k.capitalize()}:\n"
+                    format_element(v, indent + '  ', level + 1)
+                else:
+                    text += f"{indent}{emoji} {k.capitalize()}: {v}\n"
+        elif isinstance(element, list):
+            for i, item in enumerate(element):
+                text += f"{indent}{emoji} Item {i+1}:\n"
+                format_element(item, indent + '  ', level + 1)
+        else:
+            text += f"{indent}{emoji} {element}\n"
+
+    format_element(data)
+    return text
+
+"""
+def format_data(choice: dict, key: str, indent: str = '') -> str:
+    Format data for display recursively.
     data = choice[key]
     text = ""
 
@@ -480,7 +464,7 @@ def format_data(choice: dict, key: str, indent: str = '') -> str:
 
     format_element(data)
     return text
-
+"""
 
 if __name__ == '__main__':
 
