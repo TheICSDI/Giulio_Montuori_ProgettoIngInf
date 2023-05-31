@@ -201,7 +201,7 @@ class InviteManager(DataManager):
 
         return 0, "Codice di invito non valido"
 
-    def checkInvite(self, username, party_id):
+    async def checkInvite(self, username, party_id):
         """
         Check if the user as a valid pending invite for that specific party
         """
@@ -227,3 +227,38 @@ class InviteManager(DataManager):
                 usr_invites.append(invite)
 
         return usr_invites
+
+class CharacterManager(DataManager):
+    """
+    """
+
+    async def create(self, chat_id):
+        """
+        """
+        base = self.fileData["100000"]
+        self.fileData[str(chat_id)] = base
+        await self.saveData()
+
+        """
+        new = {str(chat_id): 0}
+        base = [self.fileData["100000"][0], 0, 0]
+        new[str(chat_id)] = base
+        self.fileData.append(new)
+        await self.saveData()
+        """
+
+    async def createCharacter(self, chat_id, index):
+        """
+        """
+
+        base = self.fileData["100000"][0]
+        self.getCharacters(str(chat_id))[index] = base
+        await self.saveData()
+
+    def getCharacters(self, chat_id):
+        if str(chat_id) in self.fileData:
+            c = self.fileData[str(chat_id)]
+
+        else:
+            raise KeyError(f"No characters found for chat_id: {chat_id}")
+        return c

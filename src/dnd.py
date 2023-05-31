@@ -1,5 +1,6 @@
-from DataManager import PartyManager, InviteManager
+from DataManager import PartyManager, InviteManager, CharacterManager
 import logging
+import json
 import random
 from telegram.ext import (
     ApplicationBuilder,
@@ -22,9 +23,17 @@ from telegram import (
 )
 
 TOKEN = '5856331893:AAGotmP4Ws9jX4aowvi13JkfUlIQZH1uYfI'
-SELECT, TEST = range(2)
+
+# For ConversationHandler
+SELECT = range(1)
+SHEET, CHOICE, EDIT = range(3)
+# For InlineKeyboardButton
+SLOT1, SLOT2, SLOT3, DEL = range(4)
+# R, C, B, D, F, P, S, W, I= range(9)
+
 data_party = PartyManager("JSON/parties.json")
 data_invite = InviteManager("JSON/invites.json")
+data_character = CharacterManager("JSON/characters.json")
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -113,7 +122,7 @@ async def accepting_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Cancels and ends the conversation."""
-    await update.message.reply_text("Operazione cancellata.\nNessun invito accettato", reply_markup=ReplyKeyboardRemove())
+    await update.message.reply_text("Operazione cancellata.", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
 async def remove_player(update:Update, context:ContextTypes.DEFAULT_TYPE):
@@ -133,7 +142,7 @@ async def kick_player(update:Update, context:ContextTypes.DEFAULT_TYPE):
         else:
 
             keyboard = []
-            players = data_party.getParty(party_id)
+            players = data_party.getMembers(party_id)
             for player in players:
 
                 if player["chat_id"] != chat_id:
@@ -260,19 +269,6 @@ async def party_info(update: Update, context: ContextTypes.DEFAULT_TYPE): # TODO
 
     await update.message.reply_text(reply)
 
-
-async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=update.message.text)
-
-async def caps(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if(len(context.args) == 0):
-        await context.bot.send_message(chat_id=update.effective_chat.id, text="Niente da rendere maiuscolo")
-
-    else:
-        text_caps = ' '.join(context.args).upper()
-        await context.bot.send_message(chat_id=update.effective_chat.id, text=text_caps)
-        # await context.bot.send_message(chat_id=update.effective_chat.id, text=str(len(context.args))) conta il numero di argomenti
-
 async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE):
     num = random.randint(1, 6)
     await context.bot.send_message(chat_id=update.effective_chat.id, text=str(num))
@@ -281,6 +277,209 @@ async def roll_6(update: Update, context: ContextTypes.DEFAULT_TYPE):
     num = random.randint(1, 6)
     await context.bot.send_message(chat_id=update.effective_chat.id, text=str(num))
     return ConversationHandler.END
+
+async def character_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    """
+    chat_id = update.message.chat_id
+
+    slot1 = InlineKeyboardButton("SLOT1", callback_data="SLOT1")
+    slot2 = InlineKeyboardButton("SLOT2", callback_data="SLOT2")
+    slot3 = InlineKeyboardButton("SLOT3", callback_data="SLOT3")
+    button = InlineKeyboardButton("DEL", callback_data="DEL")
+    keyboard = [[slot1], [slot2], [slot3], [button]]
+
+    try:
+        characters = data_character.getCharacters(chat_id)
+
+    except KeyError:
+        await data_character.create(chat_id)
+        characters = data_character.getCharacters(chat_id)
+
+    for i, character in enumerate(characters):
+        if character != 0:
+            name = character["nickname"]
+            button = InlineKeyboardButton(f"{name}", callback_data=f"SLOT{i}")
+            keyboard[i] = [button]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text("Ecco gli slot con i tuoi personaggi.\nClicca per avere più informazioni o creare un personaggio.", reply_markup=reply_markup)
+    return SHEET
+
+async def sheetKeyboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    """
+    query = update.callback_query
+    await query.answer()
+    chat_id = update.callback_query.from_user.id
+    result = query.data
+
+    """
+    if "choice_data" in context.user_data:  # Here, retrieve stored data.
+        result = context.user_data["choice_data"]
+        del context.user_data["choice_data"]  # Don't forget to delete it once used.
+    else:
+        result = query.data
+        context.user_data["choice_data"] = result
+    """
+
+    r = InlineKeyboardButton("RACE", callback_data=f"R{result[-1]}")
+    c = InlineKeyboardButton("CLASS", callback_data=f"C{result[-1]}")
+    b = InlineKeyboardButton("BACKGROUD", callback_data=f"B{result[-1]}")
+    d = InlineKeyboardButton("DETAILS", callback_data=f"D{result[-1]}")
+    f = InlineKeyboardButton("FEATS", callback_data=f"F{result[-1]}")
+    p = InlineKeyboardButton("PROFICIENCY", callback_data=f"P{result[-1]}")
+    s = InlineKeyboardButton("SPELLS", callback_data=f"S{result[-1]}")
+    w = InlineKeyboardButton("WEAPONS", callback_data=f"W{result[-1]}")
+    indietro = InlineKeyboardButton("BACK", callback_data="I{result[-1]}")
+
+    keyboard = [[r, c], [b, d], [f, p], [s, w], [indietro]]
+
+
+    choice = data_character.getCharacters(chat_id)
+
+    if choice[int(result[-1])] != 0:
+        nickname = choice[int(result[-1])]["nickname"]
+
+    else:
+        await data_character.createCharacter(chat_id, result[-1])
+        nickname = choice[int(result[-1])]["nickname"]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text(text=f"Ecco il datasheet del tuo personaggio {nickname} clicca per ricevere più informazioni o per modificare i dati presenti", reply_markup=reply_markup)
+    return CHOICE
+
+"""
+async def choiceSheet(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    chat_id = update.callback_query.from_user.id
+    await query.answer()
+    result = query.data
+
+
+    choice = data_character.getCharacters(chat_id)
+    choice = choice[int(result[-1])]
+
+    button1 = InlineKeyboardButton("EDIT", callback_data=f"E{result}")
+    button2 = InlineKeyboardButton("BACK", callback_data=f"X{result[-1]}")
+    keyboard = [[button1, button2]]
+
+    if result[0] == "R":
+        text = choice["race"]
+
+    elif result[0] == "C":
+        text = choice["class"]
+
+    elif result[0] == "B":
+        text = choice["background"]
+
+    elif result[0] == "D":
+        text = choice["details"]
+
+    elif result[0] == "F":
+        text = choice["feats"]
+
+    elif result[0] == "P":
+        text = "weapon proficiencies:\n"
+        text += str(choice["weapon_proficiencies"])
+        text += "\narmor proficiencies:\n"
+        text += str(choice["armor_proficiencies"])
+
+    elif result[0] == "S":
+        text = choice["spells"]
+
+    elif result[0] == "W":
+        text = choice["weapons"]
+
+    elif result[0] == "I":
+        text = choice["race"]
+
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text(text=text, reply_markup=reply_markup)
+    return EDIT
+"""
+async def choiceSheet(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    """
+    query = update.callback_query
+    chat_id = update.callback_query.from_user.id
+    await query.answer()
+    result = query.data
+
+    choice = data_character.getCharacters(chat_id)
+    choice = choice[int(result[-1])]
+
+    button1 = InlineKeyboardButton("EDIT", callback_data=f"E{result}")
+    button2 = InlineKeyboardButton("BACK", callback_data=f"X{result[-1]}")
+    keyboard = [[button1, button2]]
+
+    section_key = result[0]
+
+    # Get the corresponding key for the JSON sections
+    section_keys = {
+        "R": "race",
+        "C": "class",
+        "B": "background",
+        "D": "details",
+        "F": "feats",
+        "P": "weapon_proficiencies",  # assuming this stands for proficiencies
+        "S": "spells",
+        "W": "weapons",
+        "I": "items",  # assuming this stands for items
+    }
+
+    # If the key exists, format the data, otherwise set the text to an error message
+    if section_key in section_keys:
+        text = format_data(choice, section_keys[section_key])
+    else:
+        text = "⚠️ Unknown section."
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text(text=text, reply_markup=reply_markup)
+    return EDIT
+
+
+
+async def editCharacter(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    """
+    query = update.callback_query
+    # chat_id = update.callback_query.from_user.id
+    await query.answer()
+    result = query.data
+
+
+    return ConversationHandler.END
+
+def format_data(choice: dict, key: str, indent: str = '') -> str:
+    """Format data for display recursively."""
+    data = choice[key]
+    text = ""
+
+    # Function to format each element of data
+    def format_element(element, indent=''):
+        nonlocal text
+        if isinstance(element, dict):
+            for k, v in element.items():
+                if isinstance(v, list):
+                    for i, item in enumerate(v):
+                        text += f"{indent}🔹 {k.capitalize()} {i+1}:\n"
+                        format_element(item, indent + '  ')
+                elif isinstance(v, dict):
+                    text += f"{indent}🔹 {k.capitalize()}:\n"
+                    format_element(v, indent + '  ')
+                else:
+                    text += f"{indent}🔹 {k.capitalize()}: {v}\n"
+        elif isinstance(element, list):
+            for i, item in enumerate(element):
+                text += f"{indent}🔹 Item {i+1}:\n"
+                format_element(item, indent + '  ')
+        else:
+            text += f"{indent}🔹 {element}\n"
+
+    format_element(data)
+    return text
 
 
 if __name__ == '__main__':
@@ -295,6 +494,24 @@ if __name__ == '__main__':
         fallbacks=[CommandHandler("cancel", cancel)]
     )
 
+    character_creation = ConversationHandler(
+            entry_points=[CommandHandler("character", character_list)],
+            states={
+                SHEET:[
+                    CallbackQueryHandler(sheetKeyboard, pattern="^SLOT(\d)$"),
+                    # CallbackQueryHandler(delSheetEntry, pattern= "^" + str(DEL) + "$")
+                    ],
+                CHOICE:[
+                    CallbackQueryHandler(choiceSheet, pattern="^R(\d)$|^C(\d)$|^B(\d)$|^D(\d)$|^F(\d)$|^P(\d)$|^S(\d)$|^W(\d)$"),
+                    ],
+                EDIT:[
+                    CallbackQueryHandler(editCharacter, pattern="^E(\S)$"),
+                    CallbackQueryHandler(sheetKeyboard, pattern="^X(\d)$"),
+                    ]
+            },
+            fallbacks=[]
+    )
+
 
 # TODO inseire un comando non valido
     application.add_handler(CommandHandler('start', start))
@@ -303,14 +520,14 @@ if __name__ == '__main__':
     # application.add_handler(CommandHandler('join', join_party))
     application.add_handler(CommandHandler('exit', remove_player))
     application.add_handler(CommandHandler('kick', kick_player))
-    application.add_handler(CallbackQueryHandler(button))
+    # application.add_handler(CallbackQueryHandler(button))
     application.add_handler(CommandHandler('send_invite', send_invite))
     application.add_handler(CommandHandler('generate_invite', generate_invite))
     application.add_handler(CommandHandler('show_invites', show_invites))
     application.add_handler(CommandHandler('party', party_info))
     # application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), echo))
-    application.add_handler(CommandHandler('caps', caps))
     application.add_handler(CommandHandler('roll', roll))
     application.add_handler(conv_handler)
+    application.add_handler(character_creation)
 
     application.run_polling()
