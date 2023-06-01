@@ -4,6 +4,7 @@ import json
 import random
 from telegram.ext import (
     ApplicationBuilder,
+    CallbackContext,
     ContextTypes,
     CommandHandler,
     filters,
@@ -26,7 +27,7 @@ TOKEN = '5856331893:AAGotmP4Ws9jX4aowvi13JkfUlIQZH1uYfI'
 
 # For ConversationHandler
 SELECT = range(1)
-SHEET, CHOICE, EDIT = range(3)
+LIST, SHEET, CHOICE, EDIT, FINISHED, BACK = range(6)
 # For InlineKeyboardButton
 SLOT1, SLOT2, SLOT3, DEL = range(4)
 # R, C, B, D, F, P, S, W, I= range(9)
@@ -40,6 +41,42 @@ logging.basicConfig(
     level=logging.INFO
 )
 
+def format_data(choice: dict, key: str, indent: str = '', level: int = 0) -> str:
+    """Format data for display recursively."""
+    text = ""
+    level_emojis = ["🔹", "🔸", "▫️", "⚪", "🔘"]
+
+    def format_element(element, indent='', level=0):
+        nonlocal text
+        emoji = level_emojis[level % len(level_emojis)]
+        if isinstance(element, dict):
+            for k, v in element.items():
+                if isinstance(v, list):
+                    for i, item in enumerate(v):
+                        text += f"{indent}{emoji} {k.capitalize()} {i}:\n"
+                        format_element(item, indent + '  ', level + 1)
+                elif isinstance(v, dict):
+                    text += f"{indent}{emoji} {k.capitalize()}:\n"
+                    format_element(v, indent + '  ', level + 1)
+                else:
+                    text += f"{indent}{emoji} {k.capitalize()}: {v}\n"
+        elif isinstance(element, list):
+            for i, item in enumerate(element):
+                text += f"{indent}{emoji}{i}:\n"
+                format_element(item, indent + '  ', level + 1)
+        else:
+            text += f"{indent}{emoji} {element}\n"
+
+    # Handle 'proficiencies' as a special case
+    if key == "proficiencies":
+        text += "⚔️  Weapon_Proficiencies:\n"
+        format_element(choice["weapon_proficiencies"], indent + '  ', level + 1)
+        text += "🛡️ Armor_Proficiencies:\n"
+        format_element(choice["armor_proficiencies"], indent + '  ', level + 1)
+    else:
+        format_element(choice[key], indent, level)
+    return text
+
 def extract_id(reply):
 
     start_string = "Invito: "
@@ -50,6 +87,12 @@ def extract_id(reply):
     i_start += len(start_string)
 
     return int(reply[i_start:])
+
+def parse_string(s):
+    parts = s.split(" ")  # Split the string on " "
+    if len(parts) < 2:
+        return False
+    return parts
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # username = update.message.from_user.username
@@ -278,16 +321,33 @@ async def roll_6(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text=str(num))
     return ConversationHandler.END
 
-async def character_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    """
-    chat_id = update.message.chat_id
+async def startCharacter(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # chat_id = update.message.chat_id
 
-    slot1 = InlineKeyboardButton("SLOT1", callback_data="SLOT1")
-    slot2 = InlineKeyboardButton("SLOT2", callback_data="SLOT2")
-    slot3 = InlineKeyboardButton("SLOT3", callback_data="SLOT3")
-    button = InlineKeyboardButton("DEL", callback_data="DEL")
-    keyboard = [[slot1], [slot2], [slot3], [button]]
+    button = InlineKeyboardButton("CONFERMA", callback_data="SI")
+    button1 = InlineKeyboardButton("ANNULLA", callback_data="ANNULLA")
+    keyboard = [[button, button1]]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text("Vuoi visualizzare i personaggi?", reply_markup=reply_markup)
+    return LIST
+
+async def character_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    chat_id = update.callback_query.from_user.id
+    await query.answer()
+    result = query.data
+
+    if result[:-1] == "DEL":
+        await data_character.removeCharacter(chat_id, result[-1])
+
+    slot1 = InlineKeyboardButton("SLOT1", callback_data="SLOT0")
+    slot2 = InlineKeyboardButton("SLOT2", callback_data="SLOT1")
+    slot3 = InlineKeyboardButton("SLOT3", callback_data="SLOT2")
+    del1 = InlineKeyboardButton("DEL1", callback_data="DEL0")
+    del2 = InlineKeyboardButton("DEL2", callback_data="DEL1")
+    del3 = InlineKeyboardButton("DEL3", callback_data="DEL2")
+    keyboard = [[slot1], [slot2], [slot3], [del1, del2, del3]]
 
     try:
         characters = data_character.getCharacters(chat_id)
@@ -303,26 +363,17 @@ async def character_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
             keyboard[i] = [button]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("Ecco gli slot con i tuoi personaggi.\nClicca per avere più informazioni o creare un personaggio.", reply_markup=reply_markup)
+    await query.edit_message_text("Ecco gli slot con i tuoi personaggi.\nClicca per avere più informazioni o creare un personaggio.", reply_markup=reply_markup)
     return SHEET
 
 async def sheetKeyboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    """
     query = update.callback_query
     await query.answer()
     chat_id = update.callback_query.from_user.id
     result = query.data
 
-    """
-    if "choice_data" in context.user_data:  # Here, retrieve stored data.
-        result = context.user_data["choice_data"]
-        del context.user_data["choice_data"]  # Don't forget to delete it once used.
-    else:
-        result = query.data
-        context.user_data["choice_data"] = result
-    """
 
+    name = InlineKeyboardButton("SET NAME", callback_data=f"N{result[-1]}")
     r = InlineKeyboardButton("RACE", callback_data=f"R{result[-1]}")
     c = InlineKeyboardButton("CLASS", callback_data=f"C{result[-1]}")
     b = InlineKeyboardButton("BACKGROUD", callback_data=f"B{result[-1]}")
@@ -331,9 +382,9 @@ async def sheetKeyboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     p = InlineKeyboardButton("PROFICIENCY", callback_data=f"P{result[-1]}")
     s = InlineKeyboardButton("SPELLS", callback_data=f"S{result[-1]}")
     w = InlineKeyboardButton("WEAPONS", callback_data=f"W{result[-1]}")
-    indietro = InlineKeyboardButton("BACK", callback_data="I{result[-1]}")
+    indietro = InlineKeyboardButton("BACK", callback_data="I")
 
-    keyboard = [[r, c], [b, d], [f, p], [s, w], [indietro]]
+    keyboard = [[name], [r, c], [b, d], [f, p], [s, w], [indietro]]
 
 
     choice = data_character.getCharacters(chat_id)
@@ -349,19 +400,17 @@ async def sheetKeyboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(text=f"Ecco il datasheet del tuo personaggio {nickname} clicca per ricevere più informazioni o per modificare i dati presenti", reply_markup=reply_markup)
     return CHOICE
 
-async def choiceSheet(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    """
+async def choiceSheet(update: Update, context):
     query = update.callback_query
     chat_id = update.callback_query.from_user.id
     await query.answer()
     result = query.data
 
     choice = data_character.getCharacters(chat_id)
-    choice = choice[int(result[-1])]
+    choice = choice[int(result[1])]
 
     button1 = InlineKeyboardButton("EDIT", callback_data=f"E{result}")
-    button2 = InlineKeyboardButton("BACK", callback_data=f"X{result[-1]}")
+    button2 = InlineKeyboardButton("BACK", callback_data=f"X{result[1]}")
     keyboard = [[button1, button2]]
 
     section_key = result[0]
@@ -373,17 +422,21 @@ async def choiceSheet(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "B": "background",
         "D": "details",
         "F": "feats",
-        "P": "weapon_proficiencies",  # assuming this stands for proficiencies
+        "P": "proficiencies",  # using proficiencies for both case weapon and armor
         "S": "spells",
         "W": "weapons",
-        "I": "items",  # assuming this stands for items
+        "I": "indietro",
     }
 
     # If the key exists, format the data, otherwise set the text to an error message
     if section_key in section_keys:
         text = format_data(choice, section_keys[section_key])
+
+        context.user_data["key"] = section_keys[section_key]
+        context.user_data["slot"] = result[-1]
+
     else:
-        text = "⚠️ Unknown section."
+        text = "⚠️  Unknown section."
 
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text(text=text, reply_markup=reply_markup)
@@ -399,72 +452,63 @@ async def editCharacter(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     result = query.data
 
+    if result[0] == "N":
+        context.user_data["key"] = "nickname"
+        context.user_data["slot"] = result[-1]
+        button1 = InlineKeyboardButton("CANCELS", callback_data=f"SLOT{result[-1]}")
+        keyboard = [[button1]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(text="Inserisci il nome:", reply_markup=reply_markup)
+    else:
+        button1 = InlineKeyboardButton("CANCELS", callback_data=f"{result[1:]}")
+        keyboard = [[button1]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(text="Per modificare una riga semplicemente inserisci il nome della riga seguita \"->\" e dal valore nuovo.\nEsempio.\nnickname->mario\nPer modificare una riga di una sotto-categoria (si può notare dal cambio di emoji e di indentatura) inserisci il nome della riga non identata e poi quella desiderata e poi il valore nuovo, usare sempre \"->\" per segnare il cambio.\nEsempio.\n0->range->normal->5", reply_markup=reply_markup)
 
-    return ConversationHandler.END
+    return FINISHED
 
-def format_data(choice: dict, key: str, indent: str = '', level: int = 0) -> str:
-    """Format data for display recursively."""
-    data = choice[key]
-    text = ""
-    # Define your emojis for each level
-    level_emojis = ["🔹", "🔸", "▫️", "⚪", "🔘"]
+async def settingEdit(update: Update, context):
+    """
+    """
+    await update.message.reply_text(text="SettingEdit called.")
+    chat_id = update.message.chat_id
+    key = context.user_data["key"]
+    slot = context.user_data["slot"]
 
-    # Function to format each element of data
-    def format_element(element, indent='', level=0):
-        nonlocal text
-        # Use a different emoji for each level
-        emoji = level_emojis[level % len(level_emojis)]
-        if isinstance(element, dict):
-            for k, v in element.items():
-                if isinstance(v, list):
-                    for i, item in enumerate(v):
-                        text += f"{indent}{emoji} {k.capitalize()} {i+1}:\n"
-                        format_element(item, indent + '  ', level + 1)
-                elif isinstance(v, dict):
-                    text += f"{indent}{emoji} {k.capitalize()}:\n"
-                    format_element(v, indent + '  ', level + 1)
-                else:
-                    text += f"{indent}{emoji} {k.capitalize()}: {v}\n"
-        elif isinstance(element, list):
-            for i, item in enumerate(element):
-                text += f"{indent}{emoji} Item {i+1}:\n"
-                format_element(item, indent + '  ', level + 1)
-        else:
-            text += f"{indent}{emoji} {element}\n"
 
-    format_element(data)
-    return text
+    button1 = InlineKeyboardButton("BACK", callback_data=f"{key[0].upper()}{slot}")
 
-"""
-def format_data(choice: dict, key: str, indent: str = '') -> str:
-    Format data for display recursively.
-    data = choice[key]
-    text = ""
+    words = update.message.text
+    if not words:
+        await update.message.reply_text(text="Error parsing input. Please try again.")
+        return
 
-    # Function to format each element of data
-    def format_element(element, indent=''):
-        nonlocal text
-        if isinstance(element, dict):
-            for k, v in element.items():
-                if isinstance(v, list):
-                    for i, item in enumerate(v):
-                        text += f"{indent}🔹 {k.capitalize()} {i+1}:\n"
-                        format_element(item, indent + '  ')
-                elif isinstance(v, dict):
-                    text += f"{indent}🔹 {k.capitalize()}:\n"
-                    format_element(v, indent + '  ')
-                else:
-                    text += f"{indent}🔹 {k.capitalize()}: {v}\n"
-        elif isinstance(element, list):
-            for i, item in enumerate(element):
-                text += f"{indent}🔹 Item {i+1}:\n"
-                format_element(item, indent + '  ')
-        else:
-            text += f"{indent}🔹 {element}\n"
 
-    format_element(data)
-    return text
-"""
+    try:
+        path, value = words.rsplit('->', 1)
+        path = path.lower()
+
+    except ValueError:
+        value = words
+
+    if key == "proficiencies":
+        full_path = path
+
+    elif key == "nickname":
+        full_path = key
+        button1 = InlineKeyboardButton("CANCELS", callback_data=f"SLOT{slot}")
+
+    else:
+        full_path = key + "->" + path
+
+    text = await data_character.setValue(chat_id, slot, full_path, value)
+    if not text:
+        text = "⚠️  Unknown section."
+
+    keyboard = [[button1]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(text=text, reply_markup=reply_markup)
+    return FINISHED
 
 if __name__ == '__main__':
 
@@ -479,21 +523,33 @@ if __name__ == '__main__':
     )
 
     character_creation = ConversationHandler(
-            entry_points=[CommandHandler("character", character_list)],
+            entry_points=[
+                CommandHandler("character", startCharacter),
+                ],
             states={
+                LIST:[
+                    CallbackQueryHandler(character_list, pattern="^SI$"),
+                    ],
                 SHEET:[
                     CallbackQueryHandler(sheetKeyboard, pattern="^SLOT(\d)$"),
-                    # CallbackQueryHandler(delSheetEntry, pattern= "^" + str(DEL) + "$")
+                    CallbackQueryHandler(character_list, pattern= "^DEL(\d)$")
                     ],
                 CHOICE:[
-                    CallbackQueryHandler(choiceSheet, pattern="^R(\d)$|^C(\d)$|^B(\d)$|^D(\d)$|^F(\d)$|^P(\d)$|^S(\d)$|^W(\d)$"),
+                    CallbackQueryHandler(choiceSheet, pattern="^R(\d)$|^C(\d)$|^B(\d)$|^D(\d)$|^F(\d)$|^P(\d)$|^S(\d)$|^W(\d)$|^I(\d)$"),
+                    CallbackQueryHandler(character_list, pattern="^I$"),
+                    CallbackQueryHandler(editCharacter, pattern="^N(\d)$"),
                     ],
                 EDIT:[
-                    CallbackQueryHandler(editCharacter, pattern="^E(\S)$"),
+                    CallbackQueryHandler(editCharacter, pattern="^E[A-Z]\d$"),
                     CallbackQueryHandler(sheetKeyboard, pattern="^X(\d)$"),
+                    ],
+                FINISHED:[
+                    CallbackQueryHandler(choiceSheet, pattern="^R(\d)$|^C(\d)$|^B(\d)$|^D(\d)$|^F(\d)$|^P(\d)$|^S(\d)$|^W(\d)$"),
+                    MessageHandler(filters.Regex("[\s\S]+"), settingEdit),
+                    CallbackQueryHandler(sheetKeyboard, pattern="^SLOT(\d)$"),
                     ]
             },
-            fallbacks=[]
+            fallbacks=[CallbackQueryHandler(cancel, pattern="^ANNULLA$")]
     )
 
 

@@ -1,4 +1,5 @@
 import json
+import copy
 import asyncio
 from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
@@ -239,21 +240,52 @@ class CharacterManager(DataManager):
         self.fileData[str(chat_id)] = base
         await self.saveData()
 
-        """
-        new = {str(chat_id): 0}
-        base = [self.fileData["100000"][0], 0, 0]
-        new[str(chat_id)] = base
-        self.fileData.append(new)
-        await self.saveData()
-        """
-
     async def createCharacter(self, chat_id, index):
         """
         """
-
         base = self.fileData["100000"][0]
-        self.getCharacters(str(chat_id))[index] = base
+        self.fileData[str(chat_id)][int(index)] = base
         await self.saveData()
+
+    async def removeCharacter(self, chat_id, index):
+        """
+        """
+        self.fileData[str(chat_id)][int(index)]
+        await self.saveData()
+
+    async def setValue(self, chat_id, slot, key, value):
+        try:
+            data = copy.deepcopy(self.fileData[str(chat_id)][int(slot)])  # make a deep copy of the data
+            print("Provided key:", key)
+            words = key.split('->')
+            print("Split words:", words)
+
+            current = data
+
+            for word in words[:-1]:
+                if isinstance(current, list):
+                    current = current[int(word)]
+                else:
+                    current = current[word]
+
+            last_key = words[-1]
+            # Handle boolean values
+            if value.lower() == 'true':
+                value = True
+            elif value.lower() == 'false':
+                value = False
+            if isinstance(current, list):
+                current[int(last_key)] = value
+            else:
+                current[last_key] = value
+
+            self.fileData[str(chat_id)][int(slot)] = data  # assign the modified data back
+            # print("Data after modification:", self.fileData[str(chat_id)][int(slot)])
+            await self.saveData()
+            return "✅ Setting updated successfully."
+
+        except KeyError:
+            return None
 
     def getCharacters(self, chat_id):
         if str(chat_id) in self.fileData:
@@ -262,3 +294,16 @@ class CharacterManager(DataManager):
         else:
             raise KeyError(f"No characters found for chat_id: {chat_id}")
         return c
+
+    def fullKey(self, Key):
+        section_keys = {
+            "R": "race",
+            "C": "class",
+            "B": "background",
+            "D": "details",
+            "F": "feats",
+            "S": "spells",
+            "W": "weapons",
+            "I": "indietro",
+        }
+        return section_keys[Key]

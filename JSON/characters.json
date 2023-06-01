@@ -25,9 +25,61 @@
           {
             "name": "empty",
             "description": "empty"
+          },
+          {
+            "name": "empty",
+            "description": "empty"
+          },
+          {
+            "name": "empty",
+            "description": "empty"
+          },
+          {
+            "name": "empty",
+            "description": "empty"
+          },
+          {
+            "name": "empty",
+            "description": "empty"
           }
         ],
         "actions": [
+          {
+            "name": "empty",
+            "description": "empty",
+            "attack_bonus": "int",
+            "dice": "xdx",
+            "bonus": false,
+            "legendary": false,
+            "reaction": false
+          },
+          {
+            "name": "empty",
+            "description": "empty",
+            "attack_bonus": "int",
+            "dice": "xdx",
+            "bonus": false,
+            "legendary": false,
+            "reaction": false
+          },
+          {
+            "name": "empty",
+            "description": "empty",
+            "attack_bonus": "int",
+            "dice": "xdx",
+            "bonus": false,
+            "legendary": false,
+            "reaction": false
+          },
+          {
+            "name": "empty",
+            "description": "empty",
+            "attack_bonus": "int",
+            "dice": "xdx",
+            "bonus": false,
+            "legendary": false,
+            "reaction": false
+          },
           {
             "name": "empty",
             "description": "empty",
@@ -49,6 +101,22 @@
           {
             "name": "empty",
             "description": "empty"
+          },
+          {
+            "name": "empty",
+            "description": "empty"
+          },
+          {
+            "name": "empty",
+            "description": "empty"
+          },
+          {
+            "name": "empty",
+            "description": "empty"
+          },
+          {
+            "name": "empty",
+            "description": "empty"
           }
         ]
       },
@@ -60,13 +128,45 @@
         {
           "name": "empty",
           "description": "empty"
+        },
+        {
+          "name": "empty",
+          "description": "empty"
+        },
+        {
+          "name": "empty",
+          "description": "empty"
+        },
+        {
+          "name": "empty",
+          "description": "empty"
+        },
+        {
+          "name": "empty",
+          "description": "empty"
         }
       ],
       "weapon_proficiencies": [
         "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
         "empty"
       ],
       "armor_proficiencies": [
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
         "empty",
         "empty"
       ],
@@ -79,9 +179,117 @@
           "casting_time": "1 Action",
           "range_area": "empty",
           "components": [
-            "V",
-            "S",
-            "M"
+            "V"
+          ],
+          "materia": "empty",
+          "ritual": false,
+          "concentration": false,
+          "duration": "empty",
+          "school": "empty",
+          "attack_save": "empty",
+          "damege_effect": "empty",
+          "tags": [
+            "empty",
+            "empty"
+          ]
+        },
+        {
+          "name": "empty",
+          "description": "empty",
+          "level": 1,
+          "level_max": 1,
+          "casting_time": "1 Action",
+          "range_area": "empty",
+          "components": [
+            "V"
+          ],
+          "materia": "empty",
+          "ritual": false,
+          "concentration": false,
+          "duration": "empty",
+          "school": "empty",
+          "attack_save": "empty",
+          "damege_effect": "empty",
+          "tags": [
+            "empty",
+            "empty"
+          ]
+        },
+        {
+          "name": "empty",
+          "description": "empty",
+          "level": 1,
+          "level_max": 1,
+          "casting_time": "1 Action",
+          "range_area": "empty",
+          "components": [
+            "V"
+          ],
+          "materia": "empty",
+          "ritual": false,
+          "concentration": false,
+          "duration": "empty",
+          "school": "empty",
+          "attack_save": "empty",
+          "damege_effect": "empty",
+          "tags": [
+            "empty",
+            "empty"
+          ]
+        },
+        {
+          "name": "empty",
+          "description": "empty",
+          "level": 1,
+          "level_max": 1,
+          "casting_time": "1 Action",
+          "range_area": "empty",
+          "components": [
+            "V"
+          ],
+          "materia": "empty",
+          "ritual": false,
+          "concentration": false,
+          "duration": "empty",
+          "school": "empty",
+          "attack_save": "empty",
+          "damege_effect": "empty",
+          "tags": [
+            "empty",
+            "empty"
+          ]
+        },
+        {
+          "name": "empty",
+          "description": "empty",
+          "level": 1,
+          "level_max": 1,
+          "casting_time": "1 Action",
+          "range_area": "empty",
+          "components": [
+            "V"
+          ],
+          "materia": "empty",
+          "ritual": false,
+          "concentration": false,
+          "duration": "empty",
+          "school": "empty",
+          "attack_save": "empty",
+          "damege_effect": "empty",
+          "tags": [
+            "empty",
+            "empty"
+          ]
+        },
+        {
+          "name": "empty",
+          "description": "empty",
+          "level": 1,
+          "level_max": 1,
+          "casting_time": "1 Action",
+          "range_area": "empty",
+          "components": [
+            "V"
           ],
           "materia": "empty",
           "ritual": false,
@@ -113,16 +321,161 @@
             "long": 0
           },
           "properties": {
-            "Ammunition": "empty",
-            "Finnesse": false,
-            "Heavy": false,
-            "Light": false,
-            "Loading": false,
-            "Monk": false,
-            "Reach": false,
-            "Thrown": false,
-            "TowHanded": false,
-            "Versatile": false
+            "ammunition": "empty",
+            "finnesse": false,
+            "heavy": false,
+            "light": false,
+            "loading": false,
+            "monk": false,
+            "reach": false,
+            "thrown": false,
+            "towHanded": false,
+            "versatile": false
+          },
+          "equipped": false
+        },
+        {
+          "category": "empty",
+          "damage": {
+            "dice": "xdx",
+            "type": "enum"
+          },
+          "versatile_damage": "xdx",
+          "range": {
+            "normal": 5,
+            "long": 0
+          },
+          "throw_range": {
+            "normal": 5,
+            "long": 0
+          },
+          "properties": {
+            "ammunition": "empty",
+            "finnesse": false,
+            "heavy": false,
+            "light": false,
+            "loading": false,
+            "monk": false,
+            "reach": false,
+            "thrown": false,
+            "towHanded": false,
+            "versatile": false
+          },
+          "equipped": false
+        },
+        {
+          "category": "empty",
+          "damage": {
+            "dice": "xdx",
+            "type": "enum"
+          },
+          "versatile_damage": "xdx",
+          "range": {
+            "normal": 5,
+            "long": 0
+          },
+          "throw_range": {
+            "normal": 5,
+            "long": 0
+          },
+          "properties": {
+            "ammunition": "empty",
+            "finnesse": false,
+            "heavy": false,
+            "light": false,
+            "loading": false,
+            "monk": false,
+            "reach": false,
+            "thrown": false,
+            "towHanded": false,
+            "versatile": false
+          },
+          "equipped": false
+        },
+        {
+          "category": "empty",
+          "damage": {
+            "dice": "xdx",
+            "type": "enum"
+          },
+          "versatile_damage": "xdx",
+          "range": {
+            "normal": 5,
+            "long": 0
+          },
+          "throw_range": {
+            "normal": 5,
+            "long": 0
+          },
+          "properties": {
+            "ammunition": "empty",
+            "finnesse": false,
+            "heavy": false,
+            "light": false,
+            "loading": false,
+            "monk": false,
+            "reach": false,
+            "thrown": false,
+            "towHanded": false,
+            "versatile": false
+          },
+          "equipped": false
+        },
+        {
+          "category": "empty",
+          "damage": {
+            "dice": "xdx",
+            "type": "enum"
+          },
+          "versatile_damage": "xdx",
+          "range": {
+            "normal": 5,
+            "long": 0
+          },
+          "throw_range": {
+            "normal": 5,
+            "long": 0
+          },
+          "properties": {
+            "ammunition": "empty",
+            "finnesse": false,
+            "heavy": false,
+            "light": false,
+            "loading": false,
+            "monk": false,
+            "reach": false,
+            "thrown": false,
+            "towHanded": false,
+            "versatile": false
+          },
+          "equipped": false
+        },
+        {
+          "category": "empty",
+          "damage": {
+            "dice": "xdx",
+            "type": "enum"
+          },
+          "versatile_damage": "xdx",
+          "range": {
+            "normal": 5,
+            "long": 0
+          },
+          "throw_range": {
+            "normal": 5,
+            "long": 0
+          },
+          "properties": {
+            "ammunition": "empty",
+            "finnesse": false,
+            "heavy": false,
+            "light": false,
+            "loading": false,
+            "monk": false,
+            "reach": false,
+            "thrown": false,
+            "towHanded": false,
+            "versatile": false
           },
           "equipped": false
         }
@@ -133,7 +486,7 @@
   ],
   "213685510": [
     {
-      "nickname": "testVuoto",
+      "nickname": "Mario",
       "xp": 0,
       "details": {
         "ege": 0,
@@ -157,9 +510,61 @@
           {
             "name": "empty",
             "description": "empty"
+          },
+          {
+            "name": "empty",
+            "description": "empty"
+          },
+          {
+            "name": "empty",
+            "description": "empty"
+          },
+          {
+            "name": "empty",
+            "description": "empty"
+          },
+          {
+            "name": "empty",
+            "description": "empty"
           }
         ],
         "actions": [
+          {
+            "name": "empty",
+            "description": "empty",
+            "attack_bonus": "int",
+            "dice": "xdx",
+            "bonus": false,
+            "legendary": false,
+            "reaction": false
+          },
+          {
+            "name": "empty",
+            "description": "empty",
+            "attack_bonus": "int",
+            "dice": "xdx",
+            "bonus": false,
+            "legendary": false,
+            "reaction": false
+          },
+          {
+            "name": "empty",
+            "description": "empty",
+            "attack_bonus": "int",
+            "dice": "xdx",
+            "bonus": false,
+            "legendary": false,
+            "reaction": false
+          },
+          {
+            "name": "empty",
+            "description": "empty",
+            "attack_bonus": "int",
+            "dice": "xdx",
+            "bonus": false,
+            "legendary": false,
+            "reaction": false
+          },
           {
             "name": "empty",
             "description": "empty",
@@ -181,6 +586,22 @@
           {
             "name": "empty",
             "description": "empty"
+          },
+          {
+            "name": "empty",
+            "description": "empty"
+          },
+          {
+            "name": "empty",
+            "description": "empty"
+          },
+          {
+            "name": "empty",
+            "description": "empty"
+          },
+          {
+            "name": "empty",
+            "description": "empty"
           }
         ]
       },
@@ -192,13 +613,45 @@
         {
           "name": "empty",
           "description": "empty"
+        },
+        {
+          "name": "empty",
+          "description": "empty"
+        },
+        {
+          "name": "empty",
+          "description": "empty"
+        },
+        {
+          "name": "empty",
+          "description": "empty"
+        },
+        {
+          "name": "empty",
+          "description": "empty"
         }
       ],
       "weapon_proficiencies": [
         "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
         "empty"
       ],
       "armor_proficiencies": [
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
         "empty",
         "empty"
       ],
@@ -211,9 +664,117 @@
           "casting_time": "1 Action",
           "range_area": "empty",
           "components": [
-            "V",
-            "S",
-            "M"
+            "V"
+          ],
+          "materia": "empty",
+          "ritual": false,
+          "concentration": false,
+          "duration": "empty",
+          "school": "empty",
+          "attack_save": "empty",
+          "damege_effect": "empty",
+          "tags": [
+            "empty",
+            "empty"
+          ]
+        },
+        {
+          "name": "empty",
+          "description": "empty",
+          "level": 1,
+          "level_max": 1,
+          "casting_time": "1 Action",
+          "range_area": "empty",
+          "components": [
+            "V"
+          ],
+          "materia": "empty",
+          "ritual": false,
+          "concentration": false,
+          "duration": "empty",
+          "school": "empty",
+          "attack_save": "empty",
+          "damege_effect": "empty",
+          "tags": [
+            "empty",
+            "empty"
+          ]
+        },
+        {
+          "name": "empty",
+          "description": "empty",
+          "level": 1,
+          "level_max": 1,
+          "casting_time": "1 Action",
+          "range_area": "empty",
+          "components": [
+            "V"
+          ],
+          "materia": "empty",
+          "ritual": false,
+          "concentration": false,
+          "duration": "empty",
+          "school": "empty",
+          "attack_save": "empty",
+          "damege_effect": "empty",
+          "tags": [
+            "empty",
+            "empty"
+          ]
+        },
+        {
+          "name": "empty",
+          "description": "empty",
+          "level": 1,
+          "level_max": 1,
+          "casting_time": "1 Action",
+          "range_area": "empty",
+          "components": [
+            "V"
+          ],
+          "materia": "empty",
+          "ritual": false,
+          "concentration": false,
+          "duration": "empty",
+          "school": "empty",
+          "attack_save": "empty",
+          "damege_effect": "empty",
+          "tags": [
+            "empty",
+            "empty"
+          ]
+        },
+        {
+          "name": "empty",
+          "description": "empty",
+          "level": 1,
+          "level_max": 1,
+          "casting_time": "1 Action",
+          "range_area": "empty",
+          "components": [
+            "V"
+          ],
+          "materia": "empty",
+          "ritual": false,
+          "concentration": false,
+          "duration": "empty",
+          "school": "empty",
+          "attack_save": "empty",
+          "damege_effect": "empty",
+          "tags": [
+            "empty",
+            "empty"
+          ]
+        },
+        {
+          "name": "empty",
+          "description": "empty",
+          "level": 1,
+          "level_max": 1,
+          "casting_time": "1 Action",
+          "range_area": "empty",
+          "components": [
+            "V"
           ],
           "materia": "empty",
           "ritual": false,
@@ -245,118 +806,19 @@
             "long": 0
           },
           "properties": {
-            "Ammunition": "empty",
-            "Finnesse": false,
-            "Heavy": false,
-            "Light": false,
-            "Loading": false,
-            "Monk": false,
-            "Reach": false,
-            "Thrown": false,
-            "TowHanded": false,
-            "Versatile": false
+            "ammunition": "empty",
+            "finnesse": false,
+            "heavy": false,
+            "light": false,
+            "loading": false,
+            "monk": false,
+            "reach": false,
+            "thrown": false,
+            "towHanded": false,
+            "versatile": false
           },
           "equipped": false
-        }
-      ]
-    },
-    {
-      "nickname": "testMultiple",
-      "xp": 0,
-      "details": {
-        "ege": 0,
-        "eyes": "empty",
-        "hair": "empty",
-        "skin": "empty",
-        "weight": "empty",
-        "height": "empty",
-        "personality": "empty",
-        "ideal": "empty",
-        "bond": "empty",
-        "flaw": "empty",
-        "backstory": "empty",
-        "physical": "empty"
-      },
-      "race": {
-        "name": "empty",
-        "subtype": "empty",
-        "size": "enum",
-        "traits": [
-          {
-            "name": "empty",
-            "description": "empty"
-          }
-        ],
-        "actions": [
-          {
-            "name": "empty",
-            "description": "empty",
-            "attack_bonus": "int",
-            "dice": "xdx",
-            "bonus": false,
-            "legendary": false,
-            "reaction": false
-          }
-        ]
-      },
-      "class": {
-        "name": "empty",
-        "level": 1,
-        "subtype": "empty",
-        "hit_die": "enum",
-        "spellcasting": "enum",
-        "features": [
-          {
-            "name": "empty",
-            "description": "empty"
-          }
-        ]
-      },
-      "background": {
-        "name": "empty",
-        "description": "empty"
-      },
-      "feats": [
-        {
-          "name": "empty",
-          "description": "empty"
-        }
-      ],
-      "weapon_proficiencies": [
-        "empty",
-        "empty"
-      ],
-      "armor_proficiencies": [
-        "empty",
-        "empty"
-      ],
-      "spells": [
-        {
-          "name": "empty",
-          "description": "empty",
-          "level": 1,
-          "level_max": 1,
-          "casting_time": "1 Action",
-          "range_area": "empty",
-          "components": [
-            "V",
-            "S",
-            "M"
-          ],
-          "materia": "empty",
-          "ritual": false,
-          "concentration": false,
-          "duration": "empty",
-          "school": "empty",
-          "attack_save": "empty",
-          "damege_effect": "empty",
-          "tags": [
-            "empty",
-            "empty"
-          ]
-        }
-      ],
-      "weapons": [
+        },
         {
           "category": "empty",
           "damage": {
@@ -373,21 +835,138 @@
             "long": 0
           },
           "properties": {
-            "Ammunition": "empty",
-            "Finnesse": false,
-            "Heavy": false,
-            "Light": false,
-            "Loading": false,
-            "Monk": false,
-            "Reach": false,
-            "Thrown": false,
-            "TowHanded": false,
-            "Versatile": false
+            "ammunition": "empty",
+            "finnesse": false,
+            "heavy": false,
+            "light": false,
+            "loading": false,
+            "monk": false,
+            "reach": false,
+            "thrown": false,
+            "towHanded": false,
+            "versatile": false
+          },
+          "equipped": false
+        },
+        {
+          "category": "empty",
+          "damage": {
+            "dice": "xdx",
+            "type": "enum"
+          },
+          "versatile_damage": "xdx",
+          "range": {
+            "normal": 5,
+            "long": 0
+          },
+          "throw_range": {
+            "normal": 5,
+            "long": 0
+          },
+          "properties": {
+            "ammunition": "empty",
+            "finnesse": false,
+            "heavy": false,
+            "light": false,
+            "loading": false,
+            "monk": false,
+            "reach": false,
+            "thrown": false,
+            "towHanded": false,
+            "versatile": false
+          },
+          "equipped": false
+        },
+        {
+          "category": "empty",
+          "damage": {
+            "dice": "xdx",
+            "type": "enum"
+          },
+          "versatile_damage": "xdx",
+          "range": {
+            "normal": 5,
+            "long": 0
+          },
+          "throw_range": {
+            "normal": 5,
+            "long": 0
+          },
+          "properties": {
+            "ammunition": "empty",
+            "finnesse": false,
+            "heavy": false,
+            "light": false,
+            "loading": false,
+            "monk": false,
+            "reach": false,
+            "thrown": false,
+            "towHanded": false,
+            "versatile": false
+          },
+          "equipped": false
+        },
+        {
+          "category": "empty",
+          "damage": {
+            "dice": "xdx",
+            "type": "enum"
+          },
+          "versatile_damage": "xdx",
+          "range": {
+            "normal": 5,
+            "long": 0
+          },
+          "throw_range": {
+            "normal": 5,
+            "long": 0
+          },
+          "properties": {
+            "ammunition": "empty",
+            "finnesse": false,
+            "heavy": false,
+            "light": false,
+            "loading": false,
+            "monk": false,
+            "reach": false,
+            "thrown": false,
+            "towHanded": false,
+            "versatile": false
+          },
+          "equipped": false
+        },
+        {
+          "category": "empty",
+          "damage": {
+            "dice": "xdx",
+            "type": "enum"
+          },
+          "versatile_damage": "xdx",
+          "range": {
+            "normal": 5,
+            "long": 0
+          },
+          "throw_range": {
+            "normal": 5,
+            "long": 0
+          },
+          "properties": {
+            "ammunition": "empty",
+            "finnesse": false,
+            "heavy": false,
+            "light": false,
+            "loading": false,
+            "monk": false,
+            "reach": false,
+            "thrown": false,
+            "towHanded": false,
+            "versatile": false
           },
           "equipped": false
         }
       ]
     },
+    0,
     0
   ],
   "512505465": [
@@ -504,16 +1083,16 @@
             "long": 0
           },
           "properties": {
-            "Ammunition": "empty",
-            "Finnesse": false,
-            "Heavy": false,
-            "Light": false,
-            "Loading": false,
-            "Monk": false,
-            "Reach": false,
-            "Thrown": false,
-            "TowHanded": false,
-            "Versatile": false
+            "ammunition": "empty",
+            "finnesse": false,
+            "heavy": false,
+            "light": false,
+            "loading": false,
+            "monk": false,
+            "reach": false,
+            "thrown": false,
+            "towHanded": false,
+            "versatile": false
           },
           "equipped": false
         }
