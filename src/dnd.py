@@ -103,6 +103,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def help_command(update: Update, context:ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("TODO")
 
+"""Party"""
+
 async def create_party(update: Update, context:ContextTypes.DEFAULT_TYPE): #il creatore del party satà automaticamente il DM
     chat_id = update.message.chat_id
     full_name = update.message.from_user.full_name
@@ -117,55 +119,6 @@ async def create_party(update: Update, context:ContextTypes.DEFAULT_TYPE): #il c
     else:
         await update.message.reply_text("Fai già parte di un party.\nRicorda puoi partecipare solo ad un party alla volta.")
         await update.message.reply_text("Se desideri uscire prova il comando /exit")
-
-async def buildingInviteList(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    username = update.message.from_user.username
-    invites = data_invite.getInvites(username)
-
-    if not invites:
-        await update.message.reply_text("Non hai inviti in sospeso.")
-        return SELECT # probabilmente da cambiare
-
-    reply_keyboard = []
-    for invite in invites:
-        invite_id = invite["id"]
-        party_id = invite["party_id"]
-        button = KeyboardButton(text=f"Party ID: {party_id}, Codice Invito: {invite_id}")
-        reply_keyboard.append([button])
-
-    button = KeyboardButton(text="/cancel")
-    reply_keyboard.append([button])
-    reply_markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
-    await update.message.reply_text("Selezione l'invito da accettare", reply_markup=reply_markup)
-    return SELECT
-
-
-async def accepting_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    invite_id = extract_id(update.message.text)
-
-    chat_id = update.message.chat_id
-    party_id = data_party.getPartyID(chat_id)
-
-    if party_id is None:
-        name = update.message.from_user.full_name
-        username = update.message.from_user.username
-        party_id, reply = await data_invite.joinParty(data_party, invite_id, chat_id, username, name)
-        await update.message.reply_text(reply, reply_markup=ReplyKeyboardRemove(),)
-
-        if party_id > 0:
-            dm_id = data_party.getMaster(party_id)
-            await context.bot.send_message(chat_id=dm_id, text=f"L'utente {name} è appena entrato nel tuo party.")
-
-
-    else:
-        await update.message.reply_text("Fai già parte di un party.\nRicorda puoi partecipare solo ad un party alla volta.")
-        await update.message.reply_text("Se desideri uscire prova il comando /exit", reply_markup=ReplyKeyboardRemove(),)
-
-async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Cancels and ends the conversation."""
-    await update.message.reply_text("Operazione cancellata.", reply_markup=ReplyKeyboardRemove())
-    return ConversationHandler.END
 
 async def remove_player(update:Update, context:ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
@@ -271,7 +224,6 @@ async def generate_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(f"Ecco il codice invito: {invite_id}.\nPuoi condividerlo a SOLO un utente e può usare il comando /accept_invite per entrare.")
 
-
 async def show_invites(update: Update, context: ContextTypes.DEFAULT_TYPE):
     username = update.message.from_user.username
     invites = data_invite.getInvites(username)
@@ -288,7 +240,53 @@ async def show_invites(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     invite_message += "Usa il comando /accept_invite per unirti al party desiderato."
     await update.message.reply_text(invite_message)
+async def buildingInviteList(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    username = update.message.from_user.username
+    invites = data_invite.getInvites(username)
 
+    if not invites:
+        await update.message.reply_text("Non hai inviti in sospeso.")
+        return SELECT # probabilmente da cambiare
+
+    reply_keyboard = []
+    for invite in invites:
+        invite_id = invite["id"]
+        party_id = invite["party_id"]
+        button = KeyboardButton(text=f"Party ID: {party_id}, Codice Invito: {invite_id}")
+        reply_keyboard.append([button])
+
+    button = KeyboardButton(text="/cancel")
+    reply_keyboard.append([button])
+    reply_markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
+    await update.message.reply_text("Selezione l'invito da accettare", reply_markup=reply_markup)
+    return SELECT
+
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Cancels and ends the conversation."""
+    await update.message.reply_text("Operazione cancellata.", reply_markup=ReplyKeyboardRemove())
+    return ConversationHandler.END
+
+async def accepting_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    invite_id = extract_id(update.message.text)
+
+    chat_id = update.message.chat_id
+    party_id = data_party.getPartyID(chat_id)
+
+    if party_id is None:
+        name = update.message.from_user.full_name
+        username = update.message.from_user.username
+        party_id, reply = await data_invite.joinParty(data_party, invite_id, chat_id, username, name)
+        await update.message.reply_text(reply, reply_markup=ReplyKeyboardRemove(),)
+
+        if party_id > 0:
+            dm_id = data_party.getMaster(party_id)
+            await context.bot.send_message(chat_id=dm_id, text=f"L'utente {name} è appena entrato nel tuo party.")
+
+
+    else:
+        await update.message.reply_text("Fai già parte di un party.\nRicorda puoi partecipare solo ad un party alla volta.")
+        await update.message.reply_text("Se desideri uscire prova il comando /exit", reply_markup=ReplyKeyboardRemove(),)
 
 async def party_info(update: Update, context: ContextTypes.DEFAULT_TYPE): # TODO Aggiugere i dati del character dopo che lo creo
     chat_id = update.message.chat_id
@@ -319,6 +317,8 @@ async def roll_6(update: Update, context: ContextTypes.DEFAULT_TYPE):
     num = random.randint(1, 6)
     await context.bot.send_message(chat_id=update.effective_chat.id, text=str(num))
     return ConversationHandler.END
+
+""" Visualizzazione e Modifica del Character """
 
 async def startCharacter(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # chat_id = update.message.chat_id
@@ -550,7 +550,7 @@ if __name__ == '__main__':
                     ],
                 SHEET:[
                     CallbackQueryHandler(sheetKeyboard, pattern="^SLOT(\d)$"),
-                    CallbackQueryHandler(character_list, pattern= "^DEL(\d)$")
+                    CallbackQueryHandler(character_list, pattern="^DEL(\d)$"),
                     ],
                 CHOICE:[
                     CallbackQueryHandler(choiceSheet, pattern="^[RCBDFPSWIAH](\d)$"),
