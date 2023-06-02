@@ -1,6 +1,5 @@
 from DataManager import PartyManager, InviteManager, CharacterManager
 import logging
-import json
 import random
 from telegram.ext import (
     ApplicationBuilder,
@@ -325,8 +324,8 @@ async def startCharacter(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # chat_id = update.message.chat_id
 
     button = InlineKeyboardButton("CONFERMA", callback_data="SI")
-    button1 = InlineKeyboardButton("ANNULLA", callback_data="ANNULLA")
-    keyboard = [[button, button1]]
+    annulla = InlineKeyboardButton("ANNULLA", callback_data="ANNULLA")
+    keyboard = [[button, annulla]]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("Vuoi visualizzare i personaggi?", reply_markup=reply_markup)
@@ -347,7 +346,8 @@ async def character_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     del1 = InlineKeyboardButton("DEL1", callback_data="DEL0")
     del2 = InlineKeyboardButton("DEL2", callback_data="DEL1")
     del3 = InlineKeyboardButton("DEL3", callback_data="DEL2")
-    keyboard = [[slot1], [slot2], [slot3], [del1, del2, del3]]
+    annulla = InlineKeyboardButton("ANNULLA", callback_data="ANNULLA")
+    keyboard = [[slot1], [slot2], [slot3], [del1, del2, del3], [annulla]]
 
     try:
         characters = data_character.getCharacters(chat_id)
@@ -374,6 +374,8 @@ async def sheetKeyboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
     name = InlineKeyboardButton("SET NAME", callback_data=f"N{result[-1]}")
+    a = InlineKeyboardButton("ATTRIBUTE", callback_data=f"A{result[-1]}")
+    h = InlineKeyboardButton("HEALT", callback_data=f"H{result[-1]}")
     r = InlineKeyboardButton("RACE", callback_data=f"R{result[-1]}")
     c = InlineKeyboardButton("CLASS", callback_data=f"C{result[-1]}")
     b = InlineKeyboardButton("BACKGROUD", callback_data=f"B{result[-1]}")
@@ -384,7 +386,7 @@ async def sheetKeyboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     w = InlineKeyboardButton("WEAPONS", callback_data=f"W{result[-1]}")
     indietro = InlineKeyboardButton("BACK", callback_data="I")
 
-    keyboard = [[name], [r, c], [b, d], [f, p], [s, w], [indietro]]
+    keyboard = [[name], [a, h], [r, c], [b, d], [f, p], [s, w], [indietro]]
 
 
     choice = data_character.getCharacters(chat_id)
@@ -413,29 +415,16 @@ async def choiceSheet(update: Update, context):
     button2 = InlineKeyboardButton("BACK", callback_data=f"X{result[1]}")
     keyboard = [[button1, button2]]
 
-    section_key = result[0]
+    try:
+        key = data_character.fullKey(result[0])
 
-    # Get the corresponding key for the JSON sections
-    section_keys = {
-        "R": "race",
-        "C": "class",
-        "B": "background",
-        "D": "details",
-        "F": "feats",
-        "P": "proficiencies",  # using proficiencies for both case weapon and armor
-        "S": "spells",
-        "W": "weapons",
-        "I": "indietro",
-    }
 
-    # If the key exists, format the data, otherwise set the text to an error message
-    if section_key in section_keys:
-        text = format_data(choice, section_keys[section_key])
+        text = format_data(choice, key)
 
-        context.user_data["key"] = section_keys[section_key]
+        context.user_data["key"] = key
         context.user_data["slot"] = result[-1]
 
-    else:
+    except KeyError:
         text = "⚠️  Unknown section."
 
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -463,26 +452,36 @@ async def editCharacter(update: Update, context: ContextTypes.DEFAULT_TYPE):
         button1 = InlineKeyboardButton("CANCELS", callback_data=f"{result[1:]}")
         keyboard = [[button1]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(text="Per modificare una riga semplicemente inserisci il nome della riga seguita \"->\" e dal valore nuovo.\nEsempio.\nnickname->mario\nPer modificare una riga di una sotto-categoria (si può notare dal cambio di emoji e di indentatura) inserisci il nome della riga non identata e poi quella desiderata e poi il valore nuovo, usare sempre \"->\" per segnare il cambio.\nEsempio.\n0->range->normal->5", reply_markup=reply_markup)
+        await query.edit_message_text(text="Per modificare una riga semplicemente inserisci il nome della riga seguita \"->\" e dal valore nuovo.\nEsempio.\nspeed->5\nPer modificare una riga di una sotto-categoria (si può notare dal cambio di emoji e di indentatura) inserisci il nome della riga non identata e poi quella desiderata e poi il valore nuovo, usare sempre \"->\" per segnare il cambio.\nEsempio.\n0->range->normal->5.\nSe desideri lanciare un dado per scegliere un valore semplicemente scrivi il tipo di dado.\nEsempio.\nstrength->value->d20.", reply_markup=reply_markup)
 
     return FINISHED
 
 async def settingEdit(update: Update, context):
     """
     """
-    await update.message.reply_text(text="SettingEdit called.")
+    await update.message.reply_text(text="SettingEdit called.") # DEBUG
+    # needed variable
     chat_id = update.message.chat_id
     key = context.user_data["key"]
     slot = context.user_data["slot"]
 
+    # dice set
+    dice = ["d4","d6","d8","d10","d12", "d20", "d100"]
+    add_mod = [
+            "attribute->strength->value",
+            "attribute->dexterity->value",
+            "attribute->constitution->value",
+            "attribute->intelligence->value",
+            "attribute->wisdom->value",
+            "attribute->charisma->value",
+            "attribute->ability->value",
+            ]
 
-    button1 = InlineKeyboardButton("BACK", callback_data=f"{key[0].upper()}{slot}")
-
+    # Getting the imput
     words = update.message.text
     if not words:
         await update.message.reply_text(text="Error parsing input. Please try again.")
-        return
-
+        return FINISHED
 
     try:
         path, value = words.rsplit('->', 1)
@@ -505,10 +504,29 @@ async def settingEdit(update: Update, context):
     if not text:
         text = "⚠️  Unknown section."
 
+    if value in dice:
+        value = str(random.randint(1, int(value[1:])))
+
+    if full_path in add_mod:
+        value = str((int(value) - 10) // 2)
+        full_path = full_path[:-5] + "mod"
+        await data_character.setValue(chat_id, slot, full_path, value)
+
+
+    # Button and message for Telegram
+    button1 = InlineKeyboardButton("BACK", callback_data=f"{key[0].upper()}{slot}")
     keyboard = [[button1]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(text=text, reply_markup=reply_markup)
     return FINISHED
+
+async def cancelCharacter(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    # chat_id = update.callback_query.from_user.id
+    await query.answer()
+
+    await query.edit_message_text(text="Fine visualizzazione dei personaggi")
+    return ConversationHandler.END
 
 if __name__ == '__main__':
 
@@ -535,7 +553,7 @@ if __name__ == '__main__':
                     CallbackQueryHandler(character_list, pattern= "^DEL(\d)$")
                     ],
                 CHOICE:[
-                    CallbackQueryHandler(choiceSheet, pattern="^R(\d)$|^C(\d)$|^B(\d)$|^D(\d)$|^F(\d)$|^P(\d)$|^S(\d)$|^W(\d)$|^I(\d)$"),
+                    CallbackQueryHandler(choiceSheet, pattern="^[RCBDFPSWIAH](\d)$"),
                     CallbackQueryHandler(character_list, pattern="^I$"),
                     CallbackQueryHandler(editCharacter, pattern="^N(\d)$"),
                     ],
@@ -544,12 +562,12 @@ if __name__ == '__main__':
                     CallbackQueryHandler(sheetKeyboard, pattern="^X(\d)$"),
                     ],
                 FINISHED:[
-                    CallbackQueryHandler(choiceSheet, pattern="^R(\d)$|^C(\d)$|^B(\d)$|^D(\d)$|^F(\d)$|^P(\d)$|^S(\d)$|^W(\d)$"),
+                    CallbackQueryHandler(choiceSheet, pattern="^[RCBDFPSWIAH](\d)$"),
                     MessageHandler(filters.Regex("[\s\S]+"), settingEdit),
                     CallbackQueryHandler(sheetKeyboard, pattern="^SLOT(\d)$"),
                     ]
             },
-            fallbacks=[CallbackQueryHandler(cancel, pattern="^ANNULLA$")]
+            fallbacks=[CallbackQueryHandler(cancelCharacter, pattern="^ANNULLA$")]
     )
 
 

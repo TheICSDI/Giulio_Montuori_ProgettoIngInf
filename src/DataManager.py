@@ -1,8 +1,9 @@
-import json
-import copy
-import asyncio
-from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
+import json
+import asyncio
+import random
+import copy
+from datetime import datetime, timedelta
 
 class DataManager(ABC):
     """
@@ -254,6 +255,7 @@ class CharacterManager(DataManager):
         await self.saveData()
 
     async def setValue(self, chat_id, slot, key, value):
+
         try:
             data = copy.deepcopy(self.fileData[str(chat_id)][int(slot)])  # make a deep copy of the data
             print("Provided key:", key)
@@ -282,7 +284,7 @@ class CharacterManager(DataManager):
             self.fileData[str(chat_id)][int(slot)] = data  # assign the modified data back
             # print("Data after modification:", self.fileData[str(chat_id)][int(slot)])
             await self.saveData()
-            return "✅ Setting updated successfully."
+            return f"✅ Setting updated successfully to {value}"
 
         except KeyError:
             return None
@@ -297,13 +299,23 @@ class CharacterManager(DataManager):
 
     def fullKey(self, Key):
         section_keys = {
+            "A": "attribute",
+            "H": "healt",
             "R": "race",
             "C": "class",
             "B": "background",
             "D": "details",
             "F": "feats",
+            "P": "proficiencies",  # using proficiencies for both case weapon and armor
             "S": "spells",
             "W": "weapons",
             "I": "indietro",
         }
-        return section_keys[Key]
+
+        try:
+            Key = section_keys[Key]
+
+        except KeyError:
+            return None
+
+        return Key
