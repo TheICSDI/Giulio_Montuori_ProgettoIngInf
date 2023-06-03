@@ -27,13 +27,15 @@ TOKEN = '5856331893:AAGotmP4Ws9jX4aowvi13JkfUlIQZH1uYfI'
 # For ConversationHandler
 SELECT = range(1)
 LIST, SHEET, CHOICE, EDIT, FINISHED, BACK = range(6)
+DICE, CUSTOMDICE = range(2)
 # For InlineKeyboardButton
 SLOT1, SLOT2, SLOT3, DEL = range(4)
-# R, C, B, D, F, P, S, W, I= range(9)
 
 data_party = PartyManager("JSON/parties.json")
 data_invite = InviteManager("JSON/invites.json")
 data_character = CharacterManager("JSON/characters.json")
+# dice set
+dice = ["d4","d6","d8","d10","d12", "d20", "d100"]
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -43,7 +45,7 @@ logging.basicConfig(
 def format_data(choice: dict, key: str, indent: str = '', level: int = 0) -> str:
     """Format data for display recursively."""
     text = ""
-    level_emojis = ["🔹", "🔸", "▫️", "⚪", "🔘"]
+    level_emojis = ["🔹", "🔸", "▫️", "▪️", "🔘"]
 
     def format_element(element, indent='', level=0):
         nonlocal text
@@ -292,6 +294,7 @@ async def party_info(update: Update, context: ContextTypes.DEFAULT_TYPE): # TODO
     chat_id = update.message.chat_id
     party_id, isMaster = data_party.getPartyIsMaster(chat_id)
     reply = f"Party {party_id} composto da :\n"
+    level_emojis = ["🔹", "🔸", "🧖‍♂️"]
 
     if party_id is None:
         await update.message.reply_text("Non sei in nessun party.\nPer maggiori informazioni usa il comando /help")
@@ -301,22 +304,27 @@ async def party_info(update: Update, context: ContextTypes.DEFAULT_TYPE): # TODO
 
     for member in members:
         name = member["name"]
-        reply += f"Nome : {name} "
+        character = member["character"]
+        reply += f"{level_emojis[0]}Nome : {name}\t\t"
         if member["master"] is True:
-            reply += "DM"
+            reply += f"DM {level_emojis[2]}"
 
-        reply += "\n"
+        reply += f"\n\t\t{level_emojis[1]}Character : {character}\n"
 
     await update.message.reply_text(reply)
 
-async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    num = random.randint(1, 6)
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=str(num))
+async def setCharacter(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.message.chat_id
 
-async def roll_6(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    num = random.randint(1, 6)
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=str(num))
-    return ConversationHandler.END
+    if len(context.args) == 0:
+        await update.message.reply_text("Scrivi il nome del personaggio per inserirlo")
+        return
+
+    print("AAAAAAAAAAAAAAAAAAAAAAA")
+    text = await data_party.setC(chat_id, context.args[0], data_character)
+    print(text)
+    await update.message.reply_text(text)
+    return
 
 """ Visualizzazione e Modifica del Character """
 
@@ -388,7 +396,6 @@ async def sheetKeyboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard = [[name], [a, h], [r, c], [b, d], [f, p], [s, w], [indietro]]
 
-
     choice = data_character.getCharacters(chat_id)
 
     if choice[int(result[-1])] != 0:
@@ -417,7 +424,6 @@ async def choiceSheet(update: Update, context):
 
     try:
         key = data_character.fullKey(result[0])
-
 
         text = format_data(choice, key)
 
@@ -464,9 +470,9 @@ async def settingEdit(update: Update, context):
     chat_id = update.message.chat_id
     key = context.user_data["key"]
     slot = context.user_data["slot"]
+    # Button and message for Telegram
+    button1 = InlineKeyboardButton("BACK", callback_data=f"{key[0].upper()}{slot}")
 
-    # dice set
-    dice = ["d4","d6","d8","d10","d12", "d20", "d100"]
     add_mod = [
             "attribute->strength->value",
             "attribute->dexterity->value",
@@ -500,12 +506,12 @@ async def settingEdit(update: Update, context):
     else:
         full_path = key + "->" + path
 
+    if value in dice:
+        value = str(random.randint(1, int(value[1:])))
+
     text = await data_character.setValue(chat_id, slot, full_path, value)
     if not text:
         text = "⚠️  Unknown section."
-
-    if value in dice:
-        value = str(random.randint(1, int(value[1:])))
 
     if full_path in add_mod:
         value = str((int(value) - 10) // 2)
@@ -513,26 +519,156 @@ async def settingEdit(update: Update, context):
         await data_character.setValue(chat_id, slot, full_path, value)
 
 
-    # Button and message for Telegram
-    button1 = InlineKeyboardButton("BACK", callback_data=f"{key[0].upper()}{slot}")
     keyboard = [[button1]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(text=text, reply_markup=reply_markup)
     return FINISHED
 
-async def cancelCharacter(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def cancelConversationQuery(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     # chat_id = update.callback_query.from_user.id
     await query.answer()
 
-    await query.edit_message_text(text="Fine visualizzazione dei personaggi")
+    await query.edit_message_text(text="Operazione Annullata")
     return ConversationHandler.END
+
+async def roll(update: Update, context):
+    chat_id = update.message.chat_id
+    party_id, isMaster = data_party.getPartyIsMaster(chat_id)
+
+    d4 = InlineKeyboardButton("d4", callback_data="4")
+    d6 = InlineKeyboardButton("d6", callback_data="6")
+    d8 = InlineKeyboardButton("d8", callback_data="8")
+    d10 = InlineKeyboardButton("d10", callback_data="10")
+    d12 = InlineKeyboardButton("d12", callback_data="12")
+    d20 = InlineKeyboardButton("d20", callback_data="20")
+    d100 = InlineKeyboardButton("d100", callback_data="100")
+    custom = InlineKeyboardButton("CUSTOM", callback_data="C")
+    annulla = InlineKeyboardButton("ANNULLA", callback_data="ANNULLA")
+
+    keyboard = [[d4, d6, d8], [d10, d12, d20], [d100, custom], [annulla]]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    if not isMaster or len(context.args) == 0:
+        text = "\nLancio Privato ❌"
+        context.user_data["privato"] = False
+
+    elif context.args[0] == "p" and isMaster:
+        text = "\nLancio Privato ✅"
+        context.user_data["privato"] = True
+
+    await update.message.reply_text(text="Scegli che dado lanciare o lancia una serie di dadi usando il tasto \"CUSTOM\"." + text, reply_markup=reply_markup)
+    return DICE
+
+async def diceStandard(update: Update, context):
+    query = update.callback_query
+    chat_id = update.callback_query.from_user.id
+    name = update.callback_query.from_user.full_name
+    await query.answer()
+    result = query.data
+
+    if result[0] != "A" and result[0] != "C":
+        party_id = data_party.getPartyID(chat_id)
+        members = data_party.getMembers(party_id)
+        value = str(random.randint(1, int(result)))
+        await query.edit_message_text(text=f"Con il lancio di un d{result} hai ottenuto un {value}")
+        if not context.user_data["privato"]:
+            for member in members:
+                if chat_id != member["chat_id"]:
+                    m_chat_id = member["chat_id"]
+                    await context.bot.send_message(chat_id=m_chat_id, text=f"L'utente {name} ha lanciato un {result} è ha ottenuto un {value}")
+
+        return ConversationHandler.END
+
+    else:
+        annulla = InlineKeyboardButton("ANNULLA", callback_data="ANNULLA")
+        keyboard = [[annulla]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(text="Per lanciare più dati usare le seguenti convenzioni.\nPer lanciare più di un dado scrive quanti dadi lanciare e il nome del dado (Es.\"2d10\" \"4d20\").\nPer somma usare la scrittura di un dado singolo (Es. \"d10\" \"d20\") con il simbolo \" + \" per indicare la somma(Es. \"d10 + d20 \" \"d10 + d4 + d6\")", reply_markup=reply_markup)
+
+        return CUSTOMDICE
+
+async def diceCustom(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.message.chat_id
+    name = update.message.from_user.full_name
+    party_id = data_party.getPartyID(chat_id)
+    members = data_party.getMembers(party_id)
+
+    words = update.message.text
+    print("Provided message:", words)
+    words = words.split(" + ")
+    print("Split message:", words)
+
+
+    if len(words) == 1:
+        words = words[0]
+        dice_spec = words.split("d")
+        dice_spec = list(map(int, dice_spec))
+
+        if "d" + str(dice_spec[1]) in dice:
+            text = f"Lanciando {dice_spec[0]} d{dice_spec[1]} hai ottenuto: "
+            text_o = f"{name} ha lanciato {dice_spec[0]} d{dice_spec[1]} e ha ottenuto: "
+            for i in range(dice_spec[0]):
+                value_r = str(random.randint(1, dice_spec[1]))
+                text += value_r + ", "
+                text_o += value_r + ", "
+
+            text = text[:-2]
+            text_o = text_o[:-2]
+
+
+            if not context.user_data["privato"]:
+                for member in members:
+                    if chat_id != member["chat_id"]:
+                        m_chat_id = member["chat_id"]
+                        await context.bot.send_message(chat_id=m_chat_id, text=text_o)
+
+        else:
+            text = "⚠️  Unknown section."
+
+    else:
+        value = []
+        flag = True
+        for d in words:
+            if d not in dice:
+                flag = False
+                text = "⚠️  Unknown section."
+                break
+
+            else:
+                value.append(int(random.randint(1, int(d[1:]))))
+
+        if flag:
+            tot = sum(value)
+            text = f"Dal lancio hai ottenuto un {tot}"
+            if not context.user_data["privato"]:
+                text_o = f"Dal lancio {name} ha ottenuto un {tot}"
+                for member in members:
+                    if chat_id != member["chat_id"]:
+                        m_chat_id = member["chat_id"]
+                        await context.bot.send_message(chat_id=m_chat_id, text=text_o)
+
+    await update.message.reply_text(text)
+    return ConversationHandler.END
+
+
+
 
 if __name__ == '__main__':
 
     application = ApplicationBuilder().token(TOKEN).arbitrary_callback_data(True).build()
 
-    conv_handler = ConversationHandler(
+    convRoll = ConversationHandler(
+            entry_points=[CommandHandler("roll", roll)],
+            states={
+                DICE: [CallbackQueryHandler(diceStandard, pattern="^(\d+)$|^C$")],
+                CUSTOMDICE: [MessageHandler(filters.Regex("(.+)"), diceCustom)]
+            },
+            fallbacks=[CallbackQueryHandler(cancelConversationQuery, pattern="^ANNULLA$")]
+    )
+
+    convInvite = ConversationHandler(
         entry_points=[CommandHandler("accept_invite", buildingInviteList)],
         states={
             SELECT: [MessageHandler(filters.Regex("^Party ID: (\d+), Codice Invito: (\d+)$"), accepting_invite)],
@@ -540,7 +676,7 @@ if __name__ == '__main__':
         fallbacks=[CommandHandler("cancel", cancel)]
     )
 
-    character_creation = ConversationHandler(
+    convCharacter = ConversationHandler(
             entry_points=[
                 CommandHandler("character", startCharacter),
                 ],
@@ -567,7 +703,7 @@ if __name__ == '__main__':
                     CallbackQueryHandler(sheetKeyboard, pattern="^SLOT(\d)$"),
                     ]
             },
-            fallbacks=[CallbackQueryHandler(cancelCharacter, pattern="^ANNULLA$")]
+            fallbacks=[CallbackQueryHandler(cancelConversationQuery, pattern="^ANNULLA$")]
     )
 
 
@@ -583,9 +719,11 @@ if __name__ == '__main__':
     application.add_handler(CommandHandler('generate_invite', generate_invite))
     application.add_handler(CommandHandler('show_invites', show_invites))
     application.add_handler(CommandHandler('party', party_info))
+    application.add_handler(CommandHandler('set_character', setCharacter))
     # application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), echo))
-    application.add_handler(CommandHandler('roll', roll))
-    application.add_handler(conv_handler)
-    application.add_handler(character_creation)
+    # application.add_handler(CommandHandler('roll', roll))
+    application.add_handler(convInvite)
+    application.add_handler(convCharacter)
+    application.add_handler(convRoll)
 
     application.run_polling()
