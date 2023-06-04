@@ -62,6 +62,14 @@ class PartyManager(DataManager):
                     "name": full_name,
                     "character": None,
                     "master": True,
+                    "currency":
+                    {
+                        "copper": 0,
+                        "silver": 0,
+                        "electrum": 0,
+                        "gold": 0,
+                        "platinum": 0,
+                    }
                 }
             ]
         }
@@ -83,6 +91,14 @@ class PartyManager(DataManager):
                     "name": full_name,
                     "character": None,
                     "master": False,
+                    "currency":
+                    {
+                        "copper": 0,
+                        "silver": 0,
+                        "electrum": 0,
+                        "gold": 0,
+                        "platinum": 0,
+                    }
                 })
                 await self.saveData()
                 return party_id, f"Unito con successo al party {party_id}!"
@@ -93,7 +109,7 @@ class PartyManager(DataManager):
         Remove a pleyer from an existing party
         """
         for party in self.fileData:
-            if party_id is None or party_id == party_id["id"]:
+            if party_id is None or party_id == party["id"]:
                 for member in party["members"]:
 
                     if name is None:
@@ -124,7 +140,6 @@ class PartyManager(DataManager):
         if party_id is None:
             return "Non sei presente in nessun party"
 
-        print("PPPPPPPPPPAAAAAARRRRTTTTYYYY", party_id)
         try:
             c_list = data_c.getCharacters(chat_id)
 
@@ -147,7 +162,47 @@ class PartyManager(DataManager):
                         await self.saveData()
                         return f"{character_name} impostato come character per il party {party_id}"
 
+    async def operCurrency(self, chat_id, character, currency, ammount):
+        print(character)
+        print(currency)
+        print(ammount)
+        currencies = ["copper", "silver", "electrum", "gold", "platinum"]
 
+        if currency not in currencies:
+            return "Monenta inserita non è valida.\nLe monente valide sono \"Copper\" \"Silver\" \"Electrum\" \"Gold\" \"Platinum\"."
+
+        party_id = self.getPartyID(chat_id)
+        members = self.getMembers(party_id)
+        for member in members:
+            if member["character"] == character:
+                for c in member["currency"]:
+                    if c == currency:
+                        member["currency"][currency] += int(ammount)
+                        await self.saveData()
+                        return "Moneta impostata 😄"
+
+        return "Operazione fallita ❌"
+
+    async def setCurrency(self, chat_id, character, currency, ammount):
+        print(character)
+        print(currency)
+        print(ammount)
+        currencies = ["copper", "silver", "electrum", "gold", "platinum"]
+
+        if currency not in currencies:
+            return "Monenta inserita non è valida.\nLe monente valide sono \"Copper\" \"Silver\" \"Electrum\" \"Gold\" \"Platinum\"."
+
+        party_id = self.getPartyID(chat_id)
+        members = self.getMembers(party_id)
+        for member in members:
+            if member["character"] == character:
+                for c in member["currency"]:
+                    if c == currency:
+                        member["currency"][currency] = int(ammount)
+                        await self.saveData()
+                        return "Moneta impostata 😄"
+
+        return "Operazione fallita ❌"
 
     def getMembers(self, party_id):
         """
@@ -270,14 +325,14 @@ class CharacterManager(DataManager):
     async def create(self, chat_id):
         """
         """
-        base = self.fileData["100000"]
+        base = copy.deepcopy(self.fileData["100000"])
         self.fileData[str(chat_id)] = base
         await self.saveData()
 
     async def createCharacter(self, chat_id, index):
         """
         """
-        base = self.fileData["100000"][0]
+        base = copy.deepcopy(self.fileData["100000"][0])
         self.fileData[str(chat_id)][int(index)] = base
         await self.saveData()
 
