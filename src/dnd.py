@@ -107,12 +107,12 @@ def parse_string(s):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Benvenuto su D&D 5e Telegram bot!\nScrivi /help per più imformazioni su come giocare \U0001F604.")
 
-async def help_command(update: Update, context:ContextTypes.DEFAULT_TYPE):
+async def helpCommand(update: Update, context:ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("TODO")
 
 """Party"""
 
-async def create_party(update: Update, context:ContextTypes.DEFAULT_TYPE): #il creatore del party satà automaticamente il DM
+async def createParty(update: Update, context:ContextTypes.DEFAULT_TYPE): #il creatore del party satà automaticamente il DM
     """Handle the party creation"""
     chat_id = update.message.chat_id
     full_name = update.message.from_user.full_name
@@ -133,7 +133,7 @@ async def remove_player(update:Update, context:ContextTypes.DEFAULT_TYPE):
     reply = await data_party.removePlayer(chat_id=chat_id, party_id=None, name=None)
     await update.message.reply_text(reply)
 
-async def kick_player(update:Update, context:ContextTypes.DEFAULT_TYPE):
+async def kickPlayer(update:Update, context:ContextTypes.DEFAULT_TYPE):
     """
     Handle the kick of a member
     using both InlineKeyboard and args for input
@@ -170,7 +170,8 @@ async def kick_player(update:Update, context:ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
-async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def kickButton(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle the buttons of kickPlayer"""
     query = update.callback_query
     await query.answer()
     result = query.data
@@ -216,6 +217,7 @@ async def send_invite(update:Update, context:ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"L'utente @{usr_invite} è stato invitato correttamente.\nL'utente puoi visionare gli inviti con il comando /show_invites")
 
 async def generate_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Generate an invite for inviting telegram user without a username"""
     chat_id = update.message.chat_id
     party_id, isMaster = data_party.getPartyIsMaster(chat_id)
 
@@ -234,6 +236,7 @@ async def generate_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"Ecco il codice invito: {invite_id}.\nPuoi condividerlo a SOLO un utente e può usare il comando /accept_invite per entrare.")
 
 async def show_invites(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show the invite list"""
     username = update.message.from_user.username
     invites = data_invite.getInvites(username)
 
@@ -249,6 +252,7 @@ async def show_invites(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     invite_message += "Usa il comando /accept_invite per unirti al party desiderato."
     await update.message.reply_text(invite_message)
+
 async def buildingInviteList(update: Update, context: ContextTypes.DEFAULT_TYPE):
     username = update.message.from_user.username
     invites = data_invite.getInvites(username)
@@ -847,9 +851,9 @@ if __name__ == '__main__':
     application = ApplicationBuilder().token(TOKEN).arbitrary_callback_data(True).build()
 
     convKick = ConversationHandler(
-            entry_points=[CommandHandler('kick', kick_player)],
+            entry_points=[CommandHandler('kick', kickPlayer)],
             states={
-                KICK:[CallbackQueryHandler(button)]
+                KICK:[CallbackQueryHandler(kickButton)]
             },
             fallbacks=[]
     )
@@ -907,8 +911,8 @@ if __name__ == '__main__':
 
 # TODO inseire un comando non valido
     application.add_handler(CommandHandler('start', start))
-    application.add_handler(CommandHandler('help', help_command))
-    application.add_handler(CommandHandler('create', create_party))
+    application.add_handler(CommandHandler('help', helpCommand))
+    application.add_handler(CommandHandler('create', createParty))
     # application.add_handler(CommandHandler('join', join_party))
     application.add_handler(CommandHandler('exit', remove_player))
     application.add_handler(CommandHandler('send_invite', send_invite))
