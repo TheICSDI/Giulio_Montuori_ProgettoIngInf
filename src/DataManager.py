@@ -296,7 +296,7 @@ class InviteManager(DataManager):
         Check if the user as a valid pending invite for that specific party
         """
         for invite in self.fileData:
-            if username == invite["username"] and party_id == invite["party_id"]:
+            if username == invite["username"] and party_id == invite["id"]:
                 expiration_time = datetime.strptime(invite["expiration"], "%d/%m/%Y %H:%M:%S")
                 if datetime.now() > expiration_time:
                     return True

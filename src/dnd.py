@@ -208,7 +208,7 @@ async def send_invite(update:Update, context:ContextTypes.DEFAULT_TYPE):
         return
 
     usr_invite = usr_invite[1:]   #remove @
-    if data_invite.checkInvite(usr_invite, party_id) is True:
+    if await data_invite.checkInvite(usr_invite, party_id) is True:
         await update.message.reply_text(f"l'utente {usr_invite} è già stato invitato in questo party.\nSe l'utente non trova l'invito può usare il comando /show_invites.")
         return
 
@@ -261,16 +261,19 @@ async def buildingInviteList(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await update.message.reply_text("Non hai inviti in sospeso.")
         return SELECT # probabilmente da cambiare
 
-    reply_keyboard = []
+    keyboard = []
     for invite in invites:
         invite_id = invite["id"]
         party_id = invite["party_id"]
-        button = KeyboardButton(text=f"Party ID: {party_id}, Codice Invito: {invite_id}")
-        reply_keyboard.append([button])
+        # button = KeyboardButton(text=f"Party ID: {party_id}, Codice Invito: {invite_id}")
+        button = InlineKeyboardButton(f"Party ID: {party_id}, Codice Invito: {invite_id}", callback_data=f"Party ID: {party_id}, Codice Invito: {invite_id}")
+        keyboard.append([button])
 
-    button = KeyboardButton(text="/cancel")
-    reply_keyboard.append([button])
-    reply_markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
+    # button = KeyboardButton(text="/cancel")
+    button = InlineKeyboardButton("ANNULLA", callback_data="cancel")
+    keyboard.append([button])
+    # reply_markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
+    reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("Selezione l'invito da accettare", reply_markup=reply_markup)
     return SELECT
 
@@ -280,17 +283,23 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 async def accepting_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
 
-    invite_id = extract_id(update.message.text)
+    await query.answer()
+    result = query.data
 
-    chat_id = update.message.chat_id
+    invite_id = extract_id(result)
+
+    chat_id = update.callback_query.from_user.id
     party_id = data_party.getPartyID(chat_id)
 
     if party_id is None:
-        name = update.message.from_user.full_name
-        username = update.message.from_user.username
+        # name = update.message.from_user.full_name
+        # username = update.message.from_user.username
+        name = update.callback_query.from_user.name
+        username = update.callback_query.from_user.username
         party_id, reply = await data_invite.joinParty(data_party, invite_id, chat_id, username, name)
-        await update.message.reply_text(reply, reply_markup=ReplyKeyboardRemove(),)
+        await query.edit_message_text(reply)
 
         if party_id > 0:
             dm_id = data_party.getMaster(party_id)
@@ -298,8 +307,8 @@ async def accepting_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
     else:
-        await update.message.reply_text("Fai già parte di un party.\nRicorda puoi partecipare solo ad un party alla volta.")
-        await update.message.reply_text("Se desideri uscire prova il comando /exit", reply_markup=ReplyKeyboardRemove(),)
+        await query.edit_message_text("Fai già parte di un party.\nRicorda puoi partecipare solo ad un party alla volta.")
+        await query.edit_message_text("Se desideri uscire prova il comando /exit")
 
 async def party_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
@@ -486,6 +495,7 @@ async def sheetKeyboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = f"Ecco il datasheet del tuo personaggio {nickname} clicca per ricevere più informazioni o per modificare i dati presenti"
 
     reply_markup = InlineKeyboardMarkup(keyboard)
+    # a = InlineKeyboardButton("ATTRIBUTE", callback_data=f"A{result[-1]}")
     await query.edit_message_text(text=text, reply_markup=reply_markup)
     return CHOICE
 
@@ -870,7 +880,10 @@ if __name__ == '__main__':
     convInvite = ConversationHandler(
         entry_points=[CommandHandler("accept_invite", buildingInviteList)],
         states={
-            SELECT: [MessageHandler(filters.Regex("^Party ID: (\d+), Codice Invito: (\d+)$"), accepting_invite)],
+            SELECT: [
+                # MessageHandler(filters.Regex("^Party ID: (\d+), Codice Invito: (\d+)$"), accepting_invite)
+                CallbackQueryHandler(accepting_invite, "^Party ID: (\d+), Codice Invito: (\d+)$")
+                ],
         },
         fallbacks=[CommandHandler("cancel", cancel)]
     )
@@ -907,6 +920,31 @@ if __name__ == '__main__':
             },
             fallbacks=[CallbackQueryHandler(cancelConversationQuery, pattern="^ANNULLA$")]
     )
+
+    """
+    convParty = ConversationHandler(
+            entry_points=[CommandHandler("party", startParty)],
+            states={
+                PARTY:[], # party_info
+                CREATE:[],
+                JOIN:[],
+                KICK:[],
+                EXIT:[],
+            }
+    )
+    """
+
+    """
+    convParty = ConversationHandler(
+            entry_points=[CommandHandler(
+            states={
+                INVITE:[], # show_invites
+                SEND:[],
+                GENERATE:[],
+                SETCHARACTER:[],
+            }
+    )
+    """
 
 
 # TODO inseire un comando non valido
