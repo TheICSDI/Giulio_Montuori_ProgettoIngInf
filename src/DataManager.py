@@ -109,7 +109,7 @@ class PartyManager(DataManager):
         Remove a pleyer from an existing party
         """
         for party in self.fileData:
-            if party_id is None or party_id == party["id"]:
+            if party_id is None or party["id"] == party_id:
                 for member in party["members"]:
 
                     if name is None:
@@ -266,6 +266,9 @@ class InviteManager(DataManager):
         }
         self.fileData.append(new_invite)
         await self.saveData()
+
+        if username is False:
+            return invite_id
 
 
     async def joinParty(self, pM, invite_id, chat_id, username, full_name):
