@@ -52,6 +52,7 @@ class PartyManager(DataManager):
     async def create(self, chat_id, full_name):
         """
         Implement the father's method
+        return the party_id
         """
         party_id = await self.getLastId() + 1
         new_party = {
@@ -75,6 +76,7 @@ class PartyManager(DataManager):
         }
         self.fileData.append(new_party)
         await self.saveData()
+        return party_id
 
     async def join(self, chat_id, party_id, full_name):
         """

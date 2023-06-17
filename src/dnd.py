@@ -27,7 +27,7 @@ TOKEN = '5856331893:AAGotmP4Ws9jX4aowvi13JkfUlIQZH1uYfI'
 # For ConversationHandler
 SELECT = range(1)
 LIST, SHEET, CHOICE, EDIT, FINISHED, BACK = range(6)
-PARTY, CREATE, JOIN, KICK, EXIT, PROCESS = range(6)
+PARTY, CREATE, JOIN, KICK, EXIT, PROCESS, INVITE = range(7)
 DICE, CUSTOMDICE = range(2)
 KICK = range(1)
 # For InlineKeyboardButton
@@ -227,14 +227,14 @@ async def show_invites(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Non hai inviti in sospeso.")
         return
 
-    invite_message = "Hai ricevuto i seguenti inviti:\n"
+    reply = "Hai ricevuto i seguenti inviti:\n"
     for invite in invites:
         invite_id = invite["id"]
         party_id = invite["party_id"]
-        invite_message += f"Party ID: {party_id}, Codice Invito: {invite_id}\n"
+        reply += f"Party ID: {party_id}, Codice Invito: {invite_id}\n"
 
-    invite_message += "Usa il comando /accept_invite per unirti al party desiderato."
-    await update.message.reply_text(invite_message)
+    reply += "Usa il comando /accept_invite per unirti al party desiderato."
+    await update.message.reply_text(reply)
 
 async def buildingInviteList(update: Update, context: ContextTypes.DEFAULT_TYPE):
     username = update.message.from_user.username
@@ -261,40 +261,6 @@ async def buildingInviteList(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Cancels and ends the conversation."""
     await update.message.reply_text("Operazione cancellata.", reply_markup=ReplyKeyboardRemove())
-    return ConversationHandler.END
-
-async def accepting_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logging.info("dentro accepting_invite")
-    query = update.callback_query
-    chat_id = update.callback_query.message.chat_id
-
-    await query.answer()
-    result = query.data
-
-    logging.info(f"before result = {result}")
-    result = result.split("-")
-    logging.info(f"after result = {result}")
-    invite_id = int(result[1])
-    party_id = data_party.getPartyID(chat_id)
-
-    chat_id = update.callback_query.from_user.id
-
-    if party_id is None:
-        # name = update.message.from_user.full_name
-        # username = update.message.from_user.username
-        party_id = int(result[0])
-        name = update.callback_query.from_user.full_name
-        username = update.callback_query.from_user.username
-        party_id, reply = await data_invite.joinParty(data_party, invite_id, chat_id, username, name)
-        await query.edit_message_text(reply)
-
-        if party_id > 0:
-            dm_id = data_party.getMaster(party_id)
-            await context.bot.send_message(chat_id=dm_id, text=f"L'utente {name} è appena entrato nel tuo party.")
-
-
-    else:
-        await query.edit_message_text("Fai già parte di un party.\nRicorda puoi partecipare solo ad un party alla volta.\n Se desideri uscire prova il comando /exit")
     return ConversationHandler.END
 
 async def party_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -876,7 +842,8 @@ async def partyInfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if isMaster:
             button1 = InlineKeyboardButton("KICK", callback_data="P KICK")
-            keyboard = [[button1, button]]
+            button2 = InlineKeyboardButton("INVITE", callback_data="P INVITE")
+            keyboard = [[button2], [button1, button]]
 
 
         members = data_party.getMembers(party_id)
@@ -914,13 +881,53 @@ async def processParty(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logging.info(f"{chat_id} Result in processParty {result}")
 
     if result[1] == "CREATE":
-        pass
+        full_name = query.from_user.full_name
+        # Building keyboard and button
+        button = InlineKeyboardButton("BACK", callback_data="SI")
+        button1 = InlineKeyboardButton("ANNULLA", callback_data="ANNULLA")
+        keyboard = [[button, button1]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+
+        party_id = await data_party.create(chat_id, full_name)
+        await query.edit_message_text(f"Party creato! Adesso sei il Master del party di id {party_id}!.\nSe l'utente è provvisto di username puoi usare /send_invite <@username>.\nAltrimenti poi generare un codice invito con il comando /generate_invite.", reply_markup=reply_markup)
+        return PARTY
 
     elif result[1] == "JOIN":
-        pass
+        username = query.from_user.username
+        invites = data_invite.getInvites(username)
+        # Building keyboard and button
+        button = InlineKeyboardButton("BACK", callback_data="BACK")
+        button1 = InlineKeyboardButton("ANNULLA", callback_data="ANNULLA")
+        button3 = InlineKeyboardButton("INSERISCI CODICE", callback_data="INSERISCI CODICE")
+        keyboard = [[button3], [button, button1]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        if not invites:
+            reply = "Non hai inviti in sospeso."
+
+        else:
+            button2 = InlineKeyboardButton("ACCETTA", callback_data="ACCETTA")
+            keyboard = [[button2, button3], [button, button1]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            reply = "Hai ricevuto i seguenti inviti:\n"
+            for invite in invites:
+                invite_id = invite["id"]
+                party_id = invite["party_id"]
+                reply += f"Party ID: {party_id}, Codice Invito: {invite_id}\n"
+
+            reply += "Usa il comando /accept_invite per unirti al party desiderato."
+
+        await query.edit_message_text(reply, reply_markup=reply_markup)
+        return INVITE
 
     elif result[1] == "EXIT":
+        party_id, isMaster = data_party.getPartyIsMaster(chat_id)
         reply = "Sei siuro di voler uscire dal party?"
+
+        if isMaster:
+            reply += "\n⚠️⚠️\nSei il master se esci dal party tutto il party verrà cancellato"
+
         button = InlineKeyboardButton("CONFERMA", callback_data="CONFERMA")
         button1 = InlineKeyboardButton("BACK", callback_data="BACK")
         keyboard = [[button, button1]]
@@ -937,7 +944,6 @@ async def processParty(update: Update, context: ContextTypes.DEFAULT_TYPE):
         for player in players:
             if player["chat_id"] != chat_id:
                 name = player["name"]
-                # data = [name, party_id]
                 button = InlineKeyboardButton(f"Nome: {name}", callback_data=f"{name}<->{party_id}")
                 keyboard.append([button])
 
@@ -986,9 +992,80 @@ async def exitParty(update:Update, context:ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(reply, reply_markup=reply_markup)
     return PARTY
 
+async def inviteCheck(update:Update, context:ContextTypes.DEFAULT_TYPE):
+    """ """
+    query = update.callback_query
+    chat_id = update.callback_query.from_user.id
+    await query.answer()
+    result = query.data
+
+    if result[0] == "A":
+        username = query.from_user.username
+        invites = data_invite.getInvites(username)
+        # logging.info("dentro buildingInviteList")
+
+        keyboard = []
+        for invite in invites:
+            invite_id = invite["id"]
+            party_id = invite["party_id"]
+            button = InlineKeyboardButton(f"Party ID: {party_id}, Codice Invito: {invite_id}", callback_data=f"{party_id}-{invite_id}")
+            keyboard.append([button])
+
+        button = InlineKeyboardButton("BACK", callback_data="P JOIN")
+        keyboard.append([button])
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text("Selezione l'invito da accettare", reply_markup=reply_markup)
+        return SELECT
+        pass
+
+    elif result[0] == "I":
+        pass
+
+    # Building keyboard and button
+    button = InlineKeyboardButton("BACK", callback_data="SI")
+    button1 = InlineKeyboardButton("ANNULLA", callback_data="ANNULLA")
+    keyboard = [[button, button1]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    return PARTY
+
+async def accepting_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logging.info("dentro accepting_invite")
+    query = update.callback_query
+    chat_id = update.callback_query.message.chat_id
+
+    await query.answer()
+    result = query.data
+
+    logging.info(f"before result = {result}")
+    result = result.split("-")
+    logging.info(f"after result = {result}")
+    invite_id = int(result[1])
+    party_id = data_party.getPartyID(chat_id)
+
+    if party_id is None:
+        party_id = int(result[0])
+        name = update.callback_query.from_user.full_name
+        username = update.callback_query.from_user.username
+        party_id, reply = await data_invite.joinParty(data_party, invite_id, chat_id, username, name)
+        # Building keyboard and button
+        button = InlineKeyboardButton("BACK", callback_data="SI")
+        button1 = InlineKeyboardButton("ANNULLA", callback_data="ANNULLA")
+        keyboard = [[button, button1]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(reply, reply_markup=reply_markup)
+
+        if party_id > 0:
+            dm_id = data_party.getMaster(party_id)
+            await context.bot.send_message(chat_id=dm_id, text=f"L'utente {name} è appena entrato nel tuo party.")
+
+
+    return PARTY
+
+
 if __name__ == '__main__':
 
-    application = ApplicationBuilder().token(TOKEN).arbitrary_callback_data(True).build()
+    application = ApplicationBuilder().token(TOKEN).build()
 
     convKick = ConversationHandler(
             entry_points=[CommandHandler('kick', kickPlayer)],
@@ -1011,7 +1088,6 @@ if __name__ == '__main__':
         entry_points=[CommandHandler("accept_invite", buildingInviteList)],
         states={
             SELECT: [
-                # MessageHandler(filters.Regex("^Party ID: (\d+), Codice Invito: (\d+)$"), accepting_invite)
                 CallbackQueryHandler(accepting_invite, "(\d+)-(\d+)$")
                 ],
         },
@@ -1069,8 +1145,16 @@ if __name__ == '__main__':
                     CallbackQueryHandler(kickButton),
                     ],
                 EXIT:[
-                    CallbackQueryHandler(exitParty),
                     CallbackQueryHandler(partyInfo, pattern="^BACK$"),
+                    CallbackQueryHandler(exitParty),
+                    ],
+                INVITE:[
+                    CallbackQueryHandler(partyInfo, pattern="^BACK$"),
+                    CallbackQueryHandler(inviteCheck)
+                    ],
+                SELECT: [
+                    CallbackQueryHandler(processParty, pattern="^P JOIN$"),
+                    CallbackQueryHandler(accepting_invite, "(\d+)-(\d+)$")
                     ],
             },
             fallbacks=[CallbackQueryHandler(cancelConversationQuery, pattern="^ANNULLA$")]
