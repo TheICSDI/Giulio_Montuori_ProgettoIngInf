@@ -953,17 +953,33 @@ async def inviteCheck(update:Update, context:ContextTypes.DEFAULT_TYPE):
 
 async def generatedInvite(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
-    invite_code = update.message.text
+    invite_id = update.message.text
+    button1 = InlineKeyboardButton("BACK", callback_data="P JOIN")
+    button2 = InlineKeyboardButton("ANNULLA", callback_data="ANNULLA")
+    keyboard = [[button1, button2]]
 
-    if len(invite_code) <= 4:
-        reply = "Il codice inserito non è valido"
-        button = InlineKeyboardButton("RIPROVA", callback_data="INSERISCI CODICE")
-        button1 = InlineKeyboardButton("BACK", callback_data="P JOIN")
-        button2 = InlineKeyboardButton("ANNULLA", callback_data="ANNULLA")
-        keyboard = [[button, button1], [button2]]
+    if len(invite_id) < 4:
+        reply = "Codice di invito non valido"
         reply_markup = InlineKeyboardMarkup(keyboard)
+        party_id = 0
+        await update.message.reply_text(reply, reply_markup=reply_markup)
+        return INSERISCI
 
     else:
+        invite_id = int(invite_id)
+        name = update.message.from_user.full_name
+        party_id, reply = await data_invite.joinParty(data_party, invite_id, chat_id, False, name)
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text(reply, reply_markup=reply_markup)
+
+        if party_id > 0:
+            dm_id = data_party.getMaster(party_id)
+            await context.bot.send_message(chat_id=dm_id, text=f"L'utente {name} è appena entrato nel tuo party.")
+
+            return PROCESS
+
+        else:
+            return INSERISCI
 
 
 async def accepting_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1095,6 +1111,10 @@ if __name__ == '__main__':
                     CallbackQueryHandler(processParty, pattern="^P JOIN$"),
                     CallbackQueryHandler(accepting_invite, "(\d+)-(\d+)$")
                     ],
+                INSERISCI:[
+                    CallbackQueryHandler(processParty, pattern="^P JOIN$"),
+                    MessageHandler(filters.Regex("^(\d*)$"), generatedInvite),
+                    ],
             },
             fallbacks=[CallbackQueryHandler(cancelConversationQuery, pattern="^ANNULLA$")]
     )
@@ -1115,8 +1135,6 @@ if __name__ == '__main__':
 # TODO inseire comando non valido
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('help', helpCommand))
-    application.add_handler(CommandHandler('create', createParty))
-    application.add_handler(CommandHandler('exit', remove_player))
     application.add_handler(CommandHandler('send_invite', send_invite))
     application.add_handler(CommandHandler('generate_invite', generate_invite))
     application.add_handler(CommandHandler('show_invites', show_invites))
