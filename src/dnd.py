@@ -27,7 +27,7 @@ TOKEN = '5856331893:AAGotmP4Ws9jX4aowvi13JkfUlIQZH1uYfI'
 # For ConversationHandler
 SELECT = range(1)
 LIST, SHEET, CHOICE, EDIT, FINISHED, BACK = range(6)
-PARTY, CREATE, JOIN, KICK, EXIT, PROCESS, INVITE = range(7)
+PARTY, CREATE, JOIN, KICK, EXIT, PROCESS, INVITE, INSERISCI, SEL = range(9)
 DICE, CUSTOMDICE = range(2)
 KICK = range(1)
 # For InlineKeyboardButton
@@ -112,63 +112,6 @@ async def helpCommand(update: Update, context:ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("TODO")
 
 """Party"""
-
-async def createParty(update: Update, context:ContextTypes.DEFAULT_TYPE): #il creatore del party satà automaticamente il DM
-    """Handle the party creation"""
-    chat_id = update.message.chat_id
-    full_name = update.message.from_user.full_name
-    party_id, isMaster = data_party.getPartyIsMaster(chat_id)
-
-    if party_id is None:
-        await data_party.create(chat_id, full_name)
-        await update.message.reply_text(f"Party creato! Adesso sei il manster del party di id {party_id}!.\nSe l'utente è provvisto puoi usare /send_invite <@username>.\nAltrimenti poi generare un codice invito con il comando /generate_invite.")
-        return
-
-    else:
-        await update.message.reply_text("Fai già parte di un party.\nRicorda puoi partecipare solo ad un party alla volta.")
-        await update.message.reply_text("Se desideri uscire prova il comando /exit")
-
-async def remove_player(update:Update, context:ContextTypes.DEFAULT_TYPE):
-    """Handle the exiting of a party"""
-    chat_id = update.message.chat_id
-    reply = await data_party.removePlayer(chat_id=chat_id, party_id=None, name=None)
-    await update.message.reply_text(reply)
-
-async def kickPlayer(update:Update, context:ContextTypes.DEFAULT_TYPE):
-    """
-    Handle the kick of a member
-    using both InlineKeyboard and args for input
-    """
-    chat_id = update.message.chat_id
-    party_id, isMaster = data_party.getPartyIsMaster(chat_id)
-
-    if isMaster:
-        if len(context.args) != 0:
-            reply = await data_party.removePlayer(chat_id=None, party_id=party_id, name=context.args[0])
-            await update.message.reply_text(reply)
-
-        else:
-            keyboard = []
-            players = data_party.getMembers(party_id)
-            for player in players:
-
-                if player["chat_id"] != chat_id:
-                    name = player["name"]
-                    data = [name, party_id]
-                    button = InlineKeyboardButton(f"Nome: {name}", callback_data=data)
-                    keyboard.append([button])
-
-            data = ["Annulla"]
-            button = InlineKeyboardButton("Annulla", callback_data=data)
-            keyboard.append([button])
-
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            await update.message.reply_text("Quale membro del party vuoi kickare?\n(Tip. puoi usare il comando anche come /kick <Nome>)", reply_markup=reply_markup)
-            return KICK
-
-    else:
-        await update.message.reply_text("Solo il Dungeon Master può kickare i membri del party.")
-    return ConversationHandler.END
 
 async def send_invite(update:Update, context:ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
@@ -262,35 +205,6 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Cancels and ends the conversation."""
     await update.message.reply_text("Operazione cancellata.", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
-
-async def party_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.message.chat_id
-    party_id, isMaster = data_party.getPartyIsMaster(chat_id)
-    reply = f"Party {party_id} composto da :\n"
-    level_emojis = ["🔹", "🔸", "🧖‍♂️"]
-
-    if party_id is None:
-        await update.message.reply_text("Non sei in nessun party.\nPer maggiori informazioni usa il comando /help")
-        return
-
-    members = data_party.getMembers(party_id)
-
-    for member in members:
-        name = member["name"]
-        text_c = ""
-
-        if not member["master"]:
-            character = member["character"]
-            text_c = f"\n\t\t{level_emojis[1]}Character : {character}\n"
-
-        reply += f"{level_emojis[0]}Nome : {name}\t\t"
-
-        if member["master"]:
-            reply += f"DM {level_emojis[2]}\n"
-
-        reply += text_c
-
-    await update.message.reply_text(reply)
 
 async def setCharacter(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
@@ -387,7 +301,6 @@ async def sheetKeyboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.callback_query.from_user.id
     result = query.data
 
-
     # Master case
     if result[0] == "M":
         result = str(result)
@@ -418,7 +331,6 @@ async def sheetKeyboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if character["nickname"] == members[r_split]["character"]:
                 choice =
         """
-
 
     else:
         choice = data_character.getCharacters(chat_id)
@@ -475,7 +387,6 @@ async def choiceSheet(update: Update, context):
         for character in characters:
             if character != 0 and character["nickname"] == c_name:
                 choice = character
-
 
     else:
         choice = data_character.getCharacters(chat_id)
@@ -539,7 +450,6 @@ async def settingEdit(update: Update, context):
         for index, character in enumerate(characters):
             if character != 0 and character["nickname"] == c_name:
                 slot = index
-
 
     else:
         button1 = InlineKeyboardButton("BACK", callback_data=f"{key[0].upper()}{slot}")
@@ -807,6 +717,7 @@ async def showCurrency(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Send the formatted text as a reply
     await update.message.reply_text(text)
 
+""" Party """
 async def startParty(update: Update, context):
     # chat_id = update.message.chat_id
     # party_id, isMaster = data_party.getPartyIsMaster(chat_id)
@@ -825,6 +736,8 @@ async def partyInfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     name = update.callback_query.from_user.full_name
     await query.answer()
     # result = query.data
+    logging.info(f"{chat_id}: Inside partyInfo")
+
     party_id, isMaster = data_party.getPartyIsMaster(chat_id)
     reply = f"Party {party_id} composto da :\n"
     level_emojis = ["🔹", "🔸", "🧖‍♂️"]
@@ -944,14 +857,18 @@ async def processParty(update: Update, context: ContextTypes.DEFAULT_TYPE):
         for player in players:
             if player["chat_id"] != chat_id:
                 name = player["name"]
-                button = InlineKeyboardButton(f"Nome: {name}", callback_data=f"{name}<->{party_id}")
+                button = InlineKeyboardButton(f"Nome: {name}", callback_data=f"{name}!=!{party_id}")
                 keyboard.append([button])
 
         button = InlineKeyboardButton("BACK", callback_data="BACK")
         keyboard.append([button])
+        button1 = InlineKeyboardButton("ANNULLA", callback_data="ANNULLA")
+        keyboard.append([button1])
 
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text("Quale membro del party vuoi kickare?\n(Tip. puoi usare il comando anche come /kick <Nome>)", reply_markup=reply_markup)
+        logging.info(f"Callback query data: {query.data}")
+        logging.info("Returning KICK state")
         return KICK
 
 async def kickButton(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -961,7 +878,7 @@ async def kickButton(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     result = query.data
     logging.info(f"{chat_id}: Inside KickButton result = {result}")
-    result = result.split("<->")
+    result = result.split("!=!")
     logging.info(f"{chat_id}: Inside KickButton after split result = {result}")
 
     # Building keyboard and button
@@ -973,24 +890,32 @@ async def kickButton(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Remove player
     reply = await data_party.removePlayer(chat_id=None, party_id=int(result[1]), name=result[0])
     await query.edit_message_text(text=reply, reply_markup=reply_markup)
+
+    logging.info("Returning PARTY state")
     return PARTY
 
 async def exitParty(update:Update, context:ContextTypes.DEFAULT_TYPE):
     """Handle the exiting of a party"""
-    query = update.callback_query
-    chat_id = update.callback_query.from_user.id
-    await query.answer()
+    try:
+        query = update.callback_query
+        chat_id = update.callback_query.from_user.id
+        await query.answer()
+        logging.info(f"{chat_id}: Inside exitParty")
 
-    # Building keyboard and button
-    button = InlineKeyboardButton("BACK", callback_data="SI")
-    button1 = InlineKeyboardButton("ANNULLA", callback_data="ANNULLA")
-    keyboard = [[button, button1]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+        # Building keyboard and button
+        button = InlineKeyboardButton("BACK", callback_data="SI")
+        button1 = InlineKeyboardButton("ANNULLA", callback_data="ANNULLA")
+        keyboard = [[button, button1]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
 
-    # Remove player
-    reply = await data_party.removePlayer(chat_id=chat_id, party_id=None, name=None)
-    await query.edit_message_text(reply, reply_markup=reply_markup)
-    return PARTY
+        # Remove player
+        reply = await data_party.removePlayer(chat_id=chat_id, party_id=None, name=None)
+        await query.edit_message_text(reply, reply_markup=reply_markup)
+        return PARTY
+
+    except Exception as e:
+        logging.error(f"Exception in kickButton: {e}")
+        return ConversationHandler.END
 
 async def inviteCheck(update:Update, context:ContextTypes.DEFAULT_TYPE):
     """ """
@@ -998,6 +923,7 @@ async def inviteCheck(update:Update, context:ContextTypes.DEFAULT_TYPE):
     chat_id = update.callback_query.from_user.id
     await query.answer()
     result = query.data
+    logging.info(f"{chat_id}: Inside inviteCheck")
 
     if result[0] == "A":
         username = query.from_user.username
@@ -1015,19 +941,30 @@ async def inviteCheck(update:Update, context:ContextTypes.DEFAULT_TYPE):
         keyboard.append([button])
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text("Selezione l'invito da accettare", reply_markup=reply_markup)
-        return SELECT
-        pass
+        return SEL
 
     elif result[0] == "I":
-        pass
+        button = InlineKeyboardButton("BACK", callback_data="P JOIN")
+        button1 = InlineKeyboardButton("ANNULLA", callback_data="ANNULLA")
+        keyboard = [[button, button1]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text("Scrivi il codice di invito che il master ha generato", reply_markup=reply_markup)
+        return INSERISCI
 
-    # Building keyboard and button
-    button = InlineKeyboardButton("BACK", callback_data="SI")
-    button1 = InlineKeyboardButton("ANNULLA", callback_data="ANNULLA")
-    keyboard = [[button, button1]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+async def generatedInvite(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.message.chat_id
+    invite_code = update.message.text
 
-    return PARTY
+    if len(invite_code) <= 4:
+        reply = "Il codice inserito non è valido"
+        button = InlineKeyboardButton("RIPROVA", callback_data="INSERISCI CODICE")
+        button1 = InlineKeyboardButton("BACK", callback_data="P JOIN")
+        button2 = InlineKeyboardButton("ANNULLA", callback_data="ANNULLA")
+        keyboard = [[button, button1], [button2]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+    else:
+
 
 async def accepting_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logging.info("dentro accepting_invite")
@@ -1065,8 +1002,10 @@ async def accepting_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 if __name__ == '__main__':
 
+    # application = ApplicationBuilder().token(TOKEN).arbitrary_callback_data(True).build()
     application = ApplicationBuilder().token(TOKEN).build()
 
+    """
     convKick = ConversationHandler(
             entry_points=[CommandHandler('kick', kickPlayer)],
             states={
@@ -1074,6 +1013,7 @@ if __name__ == '__main__':
             },
             fallbacks=[]
     )
+    """
 
     convRoll = ConversationHandler(
             entry_points=[CommandHandler("roll", roll)],
@@ -1138,11 +1078,10 @@ if __name__ == '__main__':
                 PROCESS: [
                     CallbackQueryHandler(processParty, pattern="^P (\w)")
                     ],
-                CREATE:[],
                 JOIN:[],
                 KICK:[
                     CallbackQueryHandler(partyInfo, pattern="^BACK$"),
-                    CallbackQueryHandler(kickButton),
+                    CallbackQueryHandler(kickButton, pattern="^.+!=!(\d+)$"),
                     ],
                 EXIT:[
                     CallbackQueryHandler(partyInfo, pattern="^BACK$"),
@@ -1152,7 +1091,7 @@ if __name__ == '__main__':
                     CallbackQueryHandler(partyInfo, pattern="^BACK$"),
                     CallbackQueryHandler(inviteCheck)
                     ],
-                SELECT: [
+                SEL: [
                     CallbackQueryHandler(processParty, pattern="^P JOIN$"),
                     CallbackQueryHandler(accepting_invite, "(\d+)-(\d+)$")
                     ],
@@ -1173,17 +1112,17 @@ if __name__ == '__main__':
     """
 
 
-# TODO inseire un comando non valido
+# TODO inseire comando non valido
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('help', helpCommand))
     application.add_handler(CommandHandler('create', createParty))
-    # application.add_handler(CommandHandler('join', join_party))
     application.add_handler(CommandHandler('exit', remove_player))
     application.add_handler(CommandHandler('send_invite', send_invite))
     application.add_handler(CommandHandler('generate_invite', generate_invite))
     application.add_handler(CommandHandler('show_invites', show_invites))
     # application.add_handler(CommandHandler('party', party_info))
     application.add_handler(CommandHandler('set_character', setCharacter))
+    # Currency
     application.add_handler(CommandHandler('set_currency', setCurrency))
     application.add_handler(CommandHandler('pay', payCurrency))
     application.add_handler(CommandHandler('add_currency', addCurrency))
@@ -1194,7 +1133,7 @@ if __name__ == '__main__':
     application.add_handler(convInvite)
     application.add_handler(convCharacter)
     application.add_handler(convRoll)
-    application.add_handler(convKick)
+    # application.add_handler(convKick)
     application.add_handler(convParty)
 
     application.run_polling()
