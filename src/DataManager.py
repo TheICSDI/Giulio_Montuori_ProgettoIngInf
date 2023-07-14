@@ -137,32 +137,18 @@ class PartyManager(DataManager):
 
         return "Non sei presente in nessun party"
 
-    async def setC(self, chat_id, character_name, data_c):
+    async def setC(self, chat_id, index, data_c):
+        c_list = data_c.getCharacters(chat_id)
         party_id = self.getPartyID(chat_id)
-        if party_id is None:
-            return "Non sei presente in nessun party"
 
-        try:
-            c_list = data_c.getCharacters(chat_id)
-
-        except KeyError:
-            return "Non hai dei personaggi"
-
-        c_name = []
-        for c in c_list:
-            if c != 0:
-                c_name.append(c["nickname"])
-
-        if character_name not in c_name:
-            return "Non hai un personaggio con quel nome"
-
+        character_name = c_list[index]["nickname"]
         for party in self.fileData:
             if party["id"] == party_id:
                 for member in party["members"]:
                     if member["chat_id"] == chat_id:
                         member["character"] = character_name
                         await self.saveData()
-                        return f"{character_name} impostato come character per il party {party_id}"
+                        return f"{character_name} impostato come personaggio per il party"
 
     async def operCurrency(self, chat_id, character, currency, ammount):
         print(character)
