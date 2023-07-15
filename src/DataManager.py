@@ -7,12 +7,8 @@ from datetime import datetime, timedelta
 
 class DataManager(ABC):
     """
-    Abstract class for maneging all different type of JSON file
+    Abstract class for managing all different type of JSON file
     """
-
-    # dict fileData
-    # String filePwd
-
 
     def __init__(self, filePwd):
         """
@@ -48,6 +44,9 @@ class DataManager(ABC):
         pass
 
 class PartyManager(DataManager):
+    """
+    Class for managing the party json data
+    """
 
     async def create(self, chat_id, full_name):
         """
@@ -79,9 +78,8 @@ class PartyManager(DataManager):
         return party_id
 
     async def join(self, chat_id, party_id, full_name):
-        """
-        Join an existing party
-        """
+        """ Join an existing party """
+
         for party in self.fileData:
             if party["id"] == party_id:
                 for member in party["members"]:
@@ -104,12 +102,11 @@ class PartyManager(DataManager):
                 })
                 await self.saveData()
                 return party_id, f"Unito con successo al party {party_id}!"
-        return 0, "Party ID non valido. Per favore controlla l'ID e riprova."
+        return 0, "Party ID non valido."
 
     async def removePlayer(self, chat_id, party_id, name):
-        """
-        Remove a pleyer from an existing party
-        """
+        """ Remove a pleyer from an existing party """
+
         for party in self.fileData:
             if party_id is None or party["id"] == party_id:
                 for member in party["members"]:
@@ -132,12 +129,15 @@ class PartyManager(DataManager):
                             party["members"].remove(member)
                             await self.saveData()
                             return f"Player {name} rimosso con successo"
+
                 if party_id is not None:
                     return "L'utente non è presente nel party"
 
         return "Non sei presente in nessun party"
 
     async def setC(self, chat_id, index, data_c):
+        """ Set Character of a specific user in his party """
+
         c_list = data_c.getCharacters(chat_id)
         party_id = self.getPartyID(chat_id)
 
@@ -151,12 +151,11 @@ class PartyManager(DataManager):
                         return f"{character_name} impostato come personaggio per il party"
 
     async def operCurrency(self, chat_id, character, currency, ammount):
-        print(character)
-        print(currency)
-        print(ammount)
+        """ Handle all the operations with Currency """
+
         currencies = ["copper", "silver", "electrum", "gold", "platinum"]
 
-        if currency not in currencies:
+        if currency.lower() not in currencies:
             return "Monenta inserita non è valida.\nLe monente valide sono \"Copper\" \"Silver\" \"Electrum\" \"Gold\" \"Platinum\"."
 
         party_id = self.getPartyID(chat_id)
@@ -167,14 +166,13 @@ class PartyManager(DataManager):
                     if c == currency:
                         member["currency"][currency] += int(ammount)
                         await self.saveData()
-                        return "Moneta impostata 😄"
+                        return "Operazione completata con successso 😄"
 
         return "Operazione fallita ❌"
 
     async def setCurrency(self, chat_id, character, currency, ammount):
-        print(character)
-        print(currency)
-        print(ammount)
+        """ Setter of a specific type of Currency """
+
         currencies = ["copper", "silver", "electrum", "gold", "platinum"]
 
         if currency not in currencies:
@@ -188,7 +186,7 @@ class PartyManager(DataManager):
                     if c == currency:
                         member["currency"][currency] = int(ammount)
                         await self.saveData()
-                        return "Moneta impostata 😄"
+                        return "Operazione completata con successo 😄"
 
         return "Operazione fallita ❌"
 
@@ -197,14 +195,14 @@ class PartyManager(DataManager):
         Get members for an existing party
         return a list of members
         """
+
         for party in self.fileData:
             if party["id"] == party_id:
                 return party["members"]
 
     def getPartyID(self, chat_id):
-        """
-        Get the party id from a chat_id
-        """
+        """ Get the party id from a chat_id """
+
         for party in self.fileData:
             for member in party["members"]:
                 if member["chat_id"] == chat_id:
@@ -213,9 +211,8 @@ class PartyManager(DataManager):
         return None
 
     def getPartyIsMaster(self, chat_id):
-        """
-        Get the party id and check if that user is the master
-        """
+        """ Get the party id and check if that user is the master """
+
         for party in self.fileData:
             for member in party["members"]:
                 if member["chat_id"] == chat_id:
@@ -224,9 +221,8 @@ class PartyManager(DataManager):
         return None, False
 
     def getMaster(self, party_id):
-        """
-        Get the chat id of the master form a specific party
-        """
+        """ Get the chat id of the master form a specific party """
+
         for party in self.fileData:
             if party_id == party["id"]:
                 return party["members"][0]["chat_id"]
@@ -234,13 +230,12 @@ class PartyManager(DataManager):
 
 class InviteManager(DataManager):
     """
-    Class for managing the json data
+    Class for managing the invite json data
     """
 
     async def create(self, party_id, username):
-        """
-        Implement the father's method
-        """
+        """ Implement the father's method """
+
         invite_id = await self.getLastId() + 1
 
         expiration_time = datetime.now() + timedelta(hours=48)
@@ -260,9 +255,8 @@ class InviteManager(DataManager):
 
 
     async def joinParty(self, pM, invite_id, chat_id, username, full_name):
-        """
-        Joining a party through an invite
-        """
+        """ Joining a party through an invite """
+
         for invite in self.fileData:
             if (invite["id"] == invite_id and invite["username"] == username):
                 expiration_time = datetime.strptime(invite["expiration"], "%d/%m/%Y %H:%M:%S")
@@ -283,9 +277,8 @@ class InviteManager(DataManager):
         return 0, "Codice di invito non valido"
 
     async def checkInvite(self, username, party_id):
-        """
-        Check if the user as a valid pending invite for that specific party
-        """
+        """ Check if the user as a valid pending invite for that specific party """
+
         for invite in self.fileData:
             if username == invite["username"] and party_id == invite["id"]:
                 expiration_time = datetime.strptime(invite["expiration"], "%d/%m/%Y %H:%M:%S")
@@ -299,9 +292,8 @@ class InviteManager(DataManager):
         return False
 
     def getInvites(self, username):
-        """
-        Get a list of a valid invite form a specific user
-        """
+        """ Get a list of a valid invite form a specific user """
+
         usr_invites = []
         for invite in self.fileData:
             if invite["username"] == username:
@@ -311,35 +303,43 @@ class InviteManager(DataManager):
 
 class CharacterManager(DataManager):
     """
+    Class for managing the character json data
     """
 
     async def create(self, chat_id):
-        """
-        """
+        """ Implement the father method and create an entry of a player in the json """
+
         base = copy.deepcopy(self.fileData["100000"])
         self.fileData[str(chat_id)] = base
         await self.saveData()
 
     async def createCharacter(self, chat_id, index):
-        """
-        """
+        """ Create an empty templete of a character"""
+
         base = copy.deepcopy(self.fileData["100000"][0])
         self.fileData[str(chat_id)][int(index)] = base
         await self.saveData()
 
-    async def removeCharacter(self, chat_id, index):
-        """
-        """
+    async def removeCharacter(self, party, chat_id, index):
+        """ Remove an entry of a character"""
         self.fileData[str(chat_id)][int(index)] = 0
+
+        party_id = party.getPartyID(chat_id)
+        if party_id is not None:
+            members = party.getMembers(party_id)
+            for m in members:
+                if m["character"] is not None:
+                    m["character"] = None
+                    await party.saveData()
+
         await self.saveData()
 
     async def setValue(self, chat_id, slot, key, value):
+        """ Set a value of a attribute in the character dict """
 
         try:
             data = copy.deepcopy(self.fileData[str(chat_id)][int(slot)])  # make a deep copy of the data
-            print("Provided key:", key)
             words = key.split('->')
-            print("Split words:", words)
 
             current = data
 
@@ -361,7 +361,6 @@ class CharacterManager(DataManager):
                 current[last_key] = value
 
             self.fileData[str(chat_id)][int(slot)] = data  # assign the modified data back
-            # print("Data after modification:", self.fileData[str(chat_id)][int(slot)])
             await self.saveData()
             return f"✅ Setting updated successfully to {value}"
 
@@ -369,6 +368,8 @@ class CharacterManager(DataManager):
             return None
 
     def getCharacters(self, chat_id):
+        """ Getter of all the character from a specific player """
+
         if str(chat_id) in self.fileData:
             c = self.fileData[str(chat_id)]
 
@@ -377,6 +378,8 @@ class CharacterManager(DataManager):
         return c
 
     def fullKey(self, Key):
+        """ Convert the short key to a full size key """
+
         section_keys = {
             "A": "attribute",
             "H": "healt",

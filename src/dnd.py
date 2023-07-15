@@ -107,7 +107,8 @@ async def helpCommand(update: Update, context:ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
     logging.info(f"{chat_id} started the chat")
 
-    reply = """ Ecco tutti i comandi e come usarli:\n
+    reply = """ OGNI MENÙ PUÒ ESSERE APERTE SOLO UNA VOLTA\n
+Ecco tutti i comandi e come usarli:\n
 '/help' mostra questo messaggio\n
 '/start' mostra il messaggio iniziale\n
 '/party' mostra il menù per gestire i party e gli inviti\n
@@ -172,7 +173,7 @@ async def characterList(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logging.info(f"{chat_id} in characterList")
 
     if result[:-1] == "DEL":
-        await data_character.removeCharacter(chat_id, result[-1])
+        await data_character.removeCharacter(data_party, chat_id, result[-1])
 
     slot1 = InlineKeyboardButton("SLOT1", callback_data="SLOT0")
     slot2 = InlineKeyboardButton("SLOT2", callback_data="SLOT1")
@@ -364,7 +365,7 @@ async def settingEdit(update: Update, context):
     # Getting the imput
     words = update.message.text
     if not words:
-        await update.message.reply_text(text="Error parsing input. Please try again.")
+        await update.message.reply_text(text="Errore nella letture dell'input.\nProva di nuovo.")
         return FINISHED
 
     try:
@@ -389,7 +390,7 @@ async def settingEdit(update: Update, context):
 
     text = await data_character.setValue(chat_id, slot, full_path, value)
     if not text:
-        text = "⚠️  Unknown section."
+        text = "⚠️  Selezione sconosciuta."
 
     if full_path in add_mod:
         value = str((int(value) - 10) // 2)
@@ -461,7 +462,7 @@ async def diceStandard(update: Update, context):
             for member in members:
                 if chat_id != member["chat_id"]:
                     m_chat_id = member["chat_id"]
-                    await context.bot.send_message(chat_id=m_chat_id, text=f"L'utente {name} ha lanciato un {result} è ha ottenuto un {value}")
+                    await context.bot.send_message(chat_id=m_chat_id, text=f"L'utente {name} ha lanciato un d{result} è ha ottenuto un {value}")
 
         return ConversationHandler.END
 
@@ -526,9 +527,9 @@ async def diceCustom(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if flag:
             tot = sum(value)
-            text = f"Dal lancio hai ottenuto un {tot}"
+            text = f"Dal lancio composto hai ottenuto un {tot}"
             if not context.user_data["privato"]:
-                text_o = f"Dal lancio {name} ha ottenuto un {tot}"
+                text_o = f"Dal lancio composto {name} ha ottenuto un {tot}"
                 for member in members:
                     if chat_id != member["chat_id"]:
                         m_chat_id = member["chat_id"]
@@ -688,7 +689,6 @@ async def partyInfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard.append([annulla])
 
     reply_markup = InlineKeyboardMarkup(keyboard)
-    # logging.DEBUG(f"reply = {reply}, and its lenght is {len(reply)}")
     await query.edit_message_text(reply, reply_markup=reply_markup)
     return PROCESS
 
@@ -712,7 +712,7 @@ async def processParty(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
         party_id = await data_party.create(chat_id, full_name)
-        await query.edit_message_text(f"Party creato! Adesso sei il Master del party di id {party_id}!.\nSe l'utente è provvisto di username puoi usare /send_invite <@username>.\nAltrimenti poi generare un codice invito con il comando /generate_invite.", reply_markup=reply_markup)
+        await query.edit_message_text(f"Party creato! Adesso sei il Master del party di id {party_id}!.\nPer invitare gli al party gli altri giocatori tramite il tasto 'INVITE' all'interno di '/party'.", reply_markup=reply_markup)
         return PARTY
 
     elif result[1] == "JOIN":
@@ -738,7 +738,7 @@ async def processParty(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 party_id = invite["party_id"]
                 reply += f"Party ID: {party_id}, Codice Invito: {invite_id}\n"
 
-            reply += "Usa il comando /accept_invite per unirti al party desiderato."
+            reply += "Utilizza il menù qui sotto per scegliere il prossimo step."
 
         await query.edit_message_text(reply, reply_markup=reply_markup)
         return INVITED
@@ -750,7 +750,7 @@ async def processParty(update: Update, context: ContextTypes.DEFAULT_TYPE):
         button3 = InlineKeyboardButton("CODICE", callback_data="CODE")
         keyboard = [[button2, button3],[button, button1]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text("Puoi invitare i giocatori in 2 modi:\nTramite il loro username identificativo pubblico (<@username>)\nTramite un codice unico", reply_markup=reply_markup)
+        await query.edit_message_text("Puoi invitare i giocatori in 2 modi:\nTramite il loro username identificativo pubblico (<@username>).\n\nTramite un codice unico generato automaticamente perfetto per invitare sopratutto gli utenti sprovvisti di username", reply_markup=reply_markup)
         return INVITE
 
     elif result[1] == "EXIT":
@@ -775,21 +775,30 @@ async def processParty(update: Update, context: ContextTypes.DEFAULT_TYPE):
             char = data_character.getCharacters(chat_id)
 
         except KeyError:
-            reply = "Non hai personaggi disponibili, creane uno in...." # TODO
+            reply = "Non hai personaggi disponibili, creane uno seguendo il menù del comando '/character'"
             keyboard = [[button1, button2]]
             reply_markup = InlineKeyboardMarkup(keyboard)
             await query.edit_message_text(reply, reply_markup=reply_markup)
+            return SET
 
+        count = 0
         for i, c in enumerate(char):
             if not isinstance(c, int):
                 name = c["nickname"]
                 button = InlineKeyboardButton(f"{name}", callback_data=f"{i}")
                 keyboard.append([button])
+            else:
+                count += 1
 
         keyboard.append([button1, button2])
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        reply = "Seleziona una dei tuoi personaggi da usare all'interno del party"
+        if count == 0:
+            reply = "Non hai personaggi disponibili, creane uno seguendo il menù del comando '/character'"
+
+        else:
+            reply = "Seleziona uno dei tuoi personaggi da usare all'interno del party"
+
         await query.edit_message_text(reply, reply_markup=reply_markup)
         return SET
 
@@ -809,9 +818,7 @@ async def processParty(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard.append([button, button1])
 
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text("Quale membro del party vuoi kickare?\n(Tip. puoi usare il comando anche come /kick <Nome>)", reply_markup=reply_markup)
-        logging.info(f"Callback query data: {query.data}")
-        logging.info("Returning KICK state")
+        await query.edit_message_text("Quale membro del party vuoi kickare?", reply_markup=reply_markup)
         return KICK
 
 async def kickButton(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -839,26 +846,21 @@ async def kickButton(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def exitParty(update:Update, context:ContextTypes.DEFAULT_TYPE):
     """Handle the exiting of a party"""
-    try:
-        query = update.callback_query
-        chat_id = update.callback_query.from_user.id
-        await query.answer()
-        logging.info(f"{chat_id}: Inside exitParty")
+    query = update.callback_query
+    chat_id = update.callback_query.from_user.id
+    await query.answer()
+    logging.info(f"{chat_id}: Inside exitParty")
 
-        # Building keyboard and button
-        button = InlineKeyboardButton("BACK", callback_data="SI")
-        button1 = InlineKeyboardButton("ANNULLA", callback_data="ANNULLA")
-        keyboard = [[button, button1]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
+    # Building keyboard and button
+    button = InlineKeyboardButton("BACK", callback_data="SI")
+    button1 = InlineKeyboardButton("ANNULLA", callback_data="ANNULLA")
+    keyboard = [[button, button1]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
 
-        # Remove player
-        reply = await data_party.removePlayer(chat_id=chat_id, party_id=None, name=None)
-        await query.edit_message_text(reply, reply_markup=reply_markup)
-        return PARTY
-
-    except Exception as e:
-        logging.error(f"Exception in kickButton: {e}")
-        return ConversationHandler.END
+    # Remove player
+    reply = await data_party.removePlayer(chat_id=chat_id, party_id=None, name=None)
+    await query.edit_message_text(reply, reply_markup=reply_markup)
+    return PARTY
 
 async def inviteCheck(update:Update, context:ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -870,7 +872,6 @@ async def inviteCheck(update:Update, context:ContextTypes.DEFAULT_TYPE):
     if result[0] == "A":
         username = query.from_user.username
         invites = data_invite.getInvites(username)
-        # logging.info("dentro buildingInviteList")
 
         keyboard = []
         for invite in invites:
@@ -973,7 +974,7 @@ async def invitePlayer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         party_id = data_party.getPartyID(chat_id)
         invite_id = await data_invite.create(party_id, False)
 
-        await query.edit_message_text(f"Ecco il codice invito: {invite_id}.\nÈ valido per un solo utente e può usare il comando.", reply_markup=reply_markup)
+        await query.edit_message_text(f"Ecco il codice invito: {invite_id}.\nÈ valido per un solo utente e può usarlo nella sezione 'CODICE' in '/party'", reply_markup=reply_markup)
         return PROCESS
 
     else:
@@ -997,13 +998,13 @@ async def inviteUsername(update:Update, context:ContextTypes.DEFAULT_TYPE):
     username = username[1:]   #remove @
     party_id = data_party.getPartyID(chat_id)
     if await data_invite.checkInvite(username, party_id) is True:
-        reply = f"l'utente @{username} è già stato invitato in questo party.\nL'invito può essere trovato in ....." # TODO
+        reply = f"l'utente @{username} è già stato invitato in questo party.\nL'invito può essere trovato nella sezione 'JOIN' del comando '/party'"
         await update.message.reply_text(reply, reply_markup=reply_markup)
         return USERNAME
 
     await data_invite.create(party_id, username)
 
-    reply = f"L'utente @{username} è stato invitato correttamente." # TODO
+    reply = f"L'utente @{username} è stato invitato correttamente.\nL'invito può essere trovato nella sezione 'JOIN' del comando '/party'"
     await update.message.reply_text(reply, reply_markup=reply_markup)
     return PROCESS
 
@@ -1125,7 +1126,6 @@ if __name__ == '__main__':
     application.add_handler(convRoll)
     application.add_handler(convParty)
 
-# TODO inseire comando non valido
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('help', helpCommand))
     # Currency
